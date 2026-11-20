@@ -84,6 +84,15 @@ Discovery run on 2026-11-20 on the owner's PC, which has three monitors.
 
 **Hypothesis:** over DisplayPort the MSI acts on commands only while it **isn't** showing DisplayPort (no video stream on the link). All stage 1 DisplayPort tests ran while it showed DisplayPort. If this holds, PS5 → PC works without the HDMI cable, and only PC → PS5 needs another way (the Navi Key, or the HDMI plan).
 
+**Other direction fails, as the hypothesis predicts (2026-11-20, 22:33).** With the MSI showing the PC on DisplayPort, the owner clicked HDMI 1 (22:33:31), HDMI 1 (22:33:42) and HDMI 2 (22:33:46): no switch. The first read-back worked and correctly reported `0F`, so the MSI heard the read and ignored the switch. DisplayPort 1 (already showing) was confirmed in 150 ms.
+
+| Direction | Over DisplayPort |
+|---|---|
+| PS5 → PC (MSI showing HDMI) | Works (22:32) |
+| PC → PS5 (MSI showing DisplayPort) | Ignored (22:33, three tries) |
+
+Options for PC → PS5: the Navi Key (Input Source), the HDMI cabling plan below, or an experiment: make the DisplayPort link go quiet for a moment (stop sending a picture to the MSI) and send the command then.
+
 **Test to confirm (owner, at the monitor):**
 
 1. Put the MSI on the PS5 with the Navi Key. Turn the PS5 on.
