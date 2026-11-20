@@ -732,7 +732,8 @@ function Invoke-Discovery($Monitors, $EdidMap) {
 
     Write-Host ''
     if ($suggestion) {
-        Write-Host 'Next: test switching away and back (the screen will leave this PC for a few seconds):'
+        Write-Host 'Next: test switching away and back (the screen will leave this PC for a few seconds).'
+        Write-Host "Use an input the monitor really has; the lists above can include ports it doesn't have. For example:"
         Write-Host ('  powershell -ExecutionPolicy Bypass -File .\scripts\ddc-probe.ps1 {0}' -f $suggestion)
     }
 }
