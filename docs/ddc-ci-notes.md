@@ -42,6 +42,9 @@ Python alternative for quick tests: the `monitorcontrol` package. Command-line a
 - Calls are slow (tens to hundreds of ms) and occasionally fail; retry.
 - Some docks, adapters and KVM switches don't pass DDC/CI through.
 - TVs generally don't support DDC/CI. Some support HDMI-CEC, but most PC GPUs can't send CEC.
+- Reading the capabilities string is slow: 1.8 to 2.8 s on the owner's Acers, against about 60 ms for a single VCP read. Read it once in the background and cache it per monitor.
+- **Physical monitor handles can be `0`.** The owner's primary monitor gets handle `0` from `GetPhysicalMonitorsFromHMONITOR`. Don't use `IntPtr.Zero` to mean "no handle"; track that separately. The first version of the probe got this wrong.
+- A monitor that answers *every* call with `0xC0262589` (invalid command field) or `0xC026258B` (bad checksum) isn't talking DDC/CI at all; retrying doesn't help. Seen on the owner's MSI G27CQ4 (0 of 48 reads worked). Show the "turn on DDC/CI" message instead of retrying forever.
 
 ## Switch-back problem
 

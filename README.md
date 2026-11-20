@@ -8,7 +8,7 @@ It talks to the monitor over **DDC/CI**, the control channel that runs over the 
 
 ## Status
 
-Planning. No code yet. See [docs/plan.md](docs/plan.md) for the stage-by-stage plan and progress checklist.
+Stage 1 (proof of concept) in progress. [scripts/ddc-probe.ps1](scripts/ddc-probe.ps1) finds monitors, reads their inputs over DDC/CI and tests switching. See [docs/plan.md](docs/plan.md) for the stage-by-stage plan and progress checklist.
 
 ## Docs
 

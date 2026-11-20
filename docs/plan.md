@@ -19,26 +19,33 @@ Tick the boxes as work lands so any session (or Claude account) can see where th
 ### Steps
 
 - [ ] **Prep (owner):** turn on DDC/CI in the monitor's on-screen menu. Connect a second device to another input if possible.
-- [ ] **Discovery script:** PowerShell script (`scripts/ddc-probe.ps1`) that calls `dxva2.dll` through `Add-Type` P/Invoke and, for each monitor:
+  - Both Acers already answer. The MSI G27CQ4 doesn't yet (see results): check its menu for a DDC/CI option, then re-run discovery.
+- [x] **Discovery script:** PowerShell script (`scripts/ddc-probe.ps1`) that calls `dxva2.dll` through `Add-Type` P/Invoke and, for each monitor:
   - prints the model name
   - reads the **capabilities string** (`CapabilitiesRequestAndCapabilitiesReply`) and parses the `60(...)` list of supported inputs
   - reads the **current input** (`GetVCPFeatureAndVCPFeatureReply`, code `0x60`)
+  - Run: `powershell -ExecutionPolicy Bypass -File .\scripts\ddc-probe.ps1` (read-only; nothing on screen changes)
 - [ ] **Switch test:** switch to another input with `SetVCPFeature`, wait 5 seconds, try to switch back. Run it twice:
   - with a device active on the other input
   - with nothing connected to it
-- [ ] **Record results** in the table below.
+  - Built into the same script: `-Monitor <n> -SwitchTo <value>` (e.g. `-Monitor 2 -SwitchTo 0x0F`). It asks whether a device is on the other input, switches, watches what the monitor reports, switches back (up to 3 tries) and prints a summary. Add `-WhatIf` for a dry run. **Needs the owner at the monitor.**
+- [ ] **Record results** in the table below. Discovery results are in; switch-test rows still open.
 
 ### Results
 
+Discovery run on 2026-11-20 on the owner's PC, which has three monitors.
+
 | Check | Result | Why it matters |
 |---|---|---|
-| Monitor model | _tbd_ | |
-| Responds to DDC/CI at all? | _tbd_ | Go/no-go for the whole project |
-| Inputs listed in capabilities string | _tbd_ | Automatic input detection |
-| Standard or vendor-specific input values? | _tbd_ | Whether input names can be detected automatically |
-| Switch-back works (other device active)? | _tbd_ | Whether a workaround is needed |
+| Monitor model | 1: **MSI G27CQ4** (primary, EDID `MSI 3CB0`)<br>2: **Acer VG240Y** (EDID `ACR 0673`)<br>3: **Acer VG240Y** (EDID `ACR 06F0`; capabilities string only says `model(acer)`) | |
+| Responds to DDC/CI at all? | Acers: **yes**.<br>MSI: **no**. 48 of 48 reads failed (input, brightness, contrast, power), all with `0xC0262589` (invalid command field); the capabilities request fails with `0xC026258B` (bad checksum). Likely DDC/CI is off in its menu, or the cable or adapter doesn't pass it through. | Go/no-go for the whole project |
+| Inputs listed in capabilities string | Acer `0673`: `01` VGA 1, `0F` DisplayPort 1, `11` HDMI 1<br>Acer `06F0`: `01` VGA 1, `11` HDMI 1, `12` HDMI 2<br>MSI: unknown | Automatic input detection |
+| Standard or vendor-specific input values? | Acers: **standard MCCS**. Current-input reads (`11`, `12`) match the listed values. Acer `0673` reports a maximum of `03` for VCP 60, so the maximum isn't a usable range. | Whether input names can be detected automatically |
+| Switch-back works (other device active)? | _tbd_ (owner runs `-SwitchTo`) | Whether a workaround is needed |
 | Switch-back works (other input empty)? | _tbd_ | Same |
-| Time per switch | _tbd_ | Loading feedback in the UI |
+| Time per switch | _tbd_ for the switch itself. Reading the current input takes about 60 ms; reading the capabilities string takes 1.8 to 2.8 s. | Loading feedback in the UI |
+
+**Open question for the owner:** which monitor(s) should Switchboard switch, and what's on their other inputs? If it's the MSI, it has to answer DDC/CI first.
 
 **Done when:** we know the monitor's input values and whether switch-back works. If switch-back fails, see the workarounds in [ddc-ci-notes.md](ddc-ci-notes.md#switch-back-problem).
 
