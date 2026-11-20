@@ -30,7 +30,7 @@ Tick the boxes as work lands so any session (or Claude account) can see where th
   - with nothing connected to it
   - Built into the same script: `-Monitor <n> -SwitchTo <value>` (e.g. `-Monitor 2 -SwitchTo 0x0F`). It asks whether a device is on the other input, switches, watches what the monitor reports, switches back (up to 3 tries) and prints a summary. Add `-WhatIf` for a dry run. **Needs the owner at the monitor.**
   - Run 1 on the MSI (HDMI 1 empty): the monitor didn't switch at all. See results.
-  - Added `-DimTest` (dim for 4 s, then restore) to check whether a monitor acts on DDC/CI commands at all.
+  - Added `-DimTest` (dim for 4 s, then restore) to check whether a monitor acts on DDC/CI commands at all. On the MSI over DisplayPort: no change. Next is the cable swap below the results table.
 - [ ] **Record results** in the table below. Discovery results are in; switch-test rows still open.
 
 ### Results
@@ -49,13 +49,16 @@ Discovery run on 2026-11-20 on the owner's PC, which has three monitors.
 
 **Decision (2026-11-20):** Switchboard is for the **MSI G27CQ4** (monitor 1 in the probe).
 
-**Next (owner), on the MSI.** The script's read-back is unreliable on this monitor, so what you see on screen is the result.
+**Brightness test on the MSI (2026-11-20):** no visible change. Windows accepted the command in 55 ms; the read-back got no answer. Together with switch run 1: **over DisplayPort the MSI doesn't act on DDC/CI commands at all, even though Windows reports success.**
 
-1. **Brightness test:** `-Monitor 1 -DimTest`. It dims the MSI for 4 seconds, then sets it back to 100. This shows whether the MSI acts on *any* DDC/CI command over DisplayPort.
-2. **If it dims**, commands get through and the problem is specific to switching inputs. Re-run the switch test with a device **turned on** at HDMI 1 (`-Monitor 1 -SwitchTo 0x11 -From 0x0F`); the MSI may refuse inputs with no signal. Also try `0x12` (HDMI 2) in case its numbering differs.
-3. **If it doesn't dim**, commands are lost over DisplayPort. Connect the MSI over HDMI instead and re-run discovery and both tests. HDMI carries DDC/CI on its own wires, not over the DisplayPort AUX channel.
+**Next (owner): cable swap.** Swap the monitor ends of two cables. The HDMI cable that now goes to Acer `0673` goes into the MSI's HDMI 1, and the DisplayPort cable that now goes to the MSI goes into that Acer's DisplayPort input. Monitor numbers and the Windows display layout may change, so run discovery first, then `-DimTest` on both monitors. This tests two things at once:
 
-If the screen doesn't come back after a switch, the right side of the Navi Key opens Input Source by default.
+- **MSI over HDMI:** does it act on commands now? If yes, Switchboard can work with the PC on HDMI and the other device on DisplayPort.
+- **Acer over the same DisplayPort cable and GPU port:** does DisplayPort DDC/CI work on this PC at all? If the Acer works, the problem is the MSI's DisplayPort input, not the cable or the GPU.
+
+If the MSI ignores commands over HDMI too, it doesn't support DDC/CI control in practice. Then the fallback is a workaround from [ddc-ci-notes.md](ddc-ci-notes.md#switch-back-problem), most likely an external HDMI switch the PC can control.
+
+The script's read-back is unreliable on the MSI, so what you see on screen is the result. If the screen doesn't come back after a switch, the right side of the Navi Key opens Input Source by default.
 
 **Done when:** we know the monitor's input values and whether switch-back works. If switch-back fails, see the workarounds in [ddc-ci-notes.md](ddc-ci-notes.md#switch-back-problem).
 
