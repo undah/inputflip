@@ -17,6 +17,8 @@ public interface ISwitchboardActions
     void SetInputIcon(string monitorId, uint value, string icon);
 
     void ToggleMonitorHidden(string monitorId);
+
+    void ToggleBlankScreensWhenLeaving(string monitorId, uint value);
 }
 
 public sealed class InputViewModel : ObservableObject
@@ -40,7 +42,26 @@ public sealed class InputViewModel : ObservableObject
         RenameCommand = new RelayCommand(() => IsRenaming = true);
         HideCommand = new RelayCommand(() => _actions.ToggleInputHidden(MonitorId, Value));
         SetIconCommand = new RelayCommand<string>(icon => { if (icon is not null) _actions.SetInputIcon(MonitorId, Value, icon); });
+        BlankWhenLeavingCommand = new RelayCommand(() => _actions.ToggleBlankScreensWhenLeaving(MonitorId, Value));
     }
+
+    public IRelayCommand BlankWhenLeavingCommand { get; }
+
+    private bool _blankWhenLeaving;
+
+    /// <summary>This is the PC's input on a monitor that only switches away from it with the screens off.</summary>
+    public bool BlankWhenLeaving
+    {
+        get => _blankWhenLeaving;
+        set
+        {
+            if (SetProperty(ref _blankWhenLeaving, value)) OnPropertyChanged(nameof(BlankWhenLeavingMenuText));
+        }
+    }
+
+    public string BlankWhenLeavingMenuText => _blankWhenLeaving
+        ? "Stop turning screens off when leaving this input"
+        : "Turn screens off when leaving this input";
 
     public string MonitorId { get; }
 
@@ -142,6 +163,7 @@ public sealed class InputViewModel : ObservableObject
         Hotkey = input.Hotkey;
         IsCurrent = input.IsCurrent;
         IsHidden = input.Hidden;
+        BlankWhenLeaving = input.BlankScreensWhenLeaving;
         OnPropertyChanged(nameof(AccessibleName));
     }
 }

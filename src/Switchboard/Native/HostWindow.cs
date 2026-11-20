@@ -55,6 +55,27 @@ internal sealed class HostWindow : IDisposable
         _hotkeyIds.Clear();
     }
 
+    /// <summary>
+    /// Turns all screens off, as Windows does before sleep. Video stops on every cable, but the monitors stay
+    /// connected, so DDC/CI handles keep working. Any mouse or keyboard input turns them back on.
+    /// </summary>
+    public void TurnScreensOff() =>
+        // WM_SYSCOMMAND / SC_MONITORPOWER / 2 (off), handled by DefWindowProc for our own window.
+        PostMessage(Handle, 0x0112, (IntPtr)0xF170, (IntPtr)2);
+
+    /// <summary>Wakes the screens with a one-pixel mouse nudge and back.</summary>
+    public static void WakeScreens()
+    {
+        mouse_event(0x0001, 1, 0, 0, UIntPtr.Zero);
+        mouse_event(0x0001, -1, 0, 0, UIntPtr.Zero);
+    }
+
+    [DllImport("user32.dll")]
+    private static extern bool PostMessage(IntPtr hWnd, uint msg, IntPtr wParam, IntPtr lParam);
+
+    [DllImport("user32.dll")]
+    private static extern void mouse_event(uint flags, int dx, int dy, uint data, UIntPtr extraInfo);
+
     public void Dispose()
     {
         UnregisterAllHotkeys();

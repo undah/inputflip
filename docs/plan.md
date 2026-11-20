@@ -93,6 +93,17 @@ Discovery run on 2026-11-20 on the owner's PC, which has three monitors.
 
 Options for PC → PS5: the Navi Key (Input Source), the HDMI cabling plan below, or an experiment: make the DisplayPort link go quiet for a moment (stop sending a picture to the MSI) and send the command then.
 
+**Quiet-link trick works (2026-11-20, 22:36).** `scripts/quiet-link-test.ps1` turned all screens off the way Windows does before sleep (`SC_MONITORPOWER`), waited 3 s, sent `60 = 12` (HDMI 2) six times over DisplayPort, then woke the screens with a mouse nudge. **The MSI came back on the PS5** (owner confirmed). Before: it read `0F`. After: it read `11` twice, which is wrong (it was on HDMI 2), so reads over DisplayPort stay untrustworthy.
+
+So both directions work over DisplayPort, keeping 165 Hz:
+
+| Direction | How |
+|---|---|
+| PC → PS5 | Screens off, send the command, screens on (about 8 s, all screens go dark) |
+| PS5 → PC | Normal command |
+
+**Built into the app:** per-monitor setting `blankScreensWhenLeaving` (the PC's input, `"0x0F"` for the MSI; also on the input's right-click menu). Switching from that input to any other uses the screens-off sequence. On for the MSI on the owner's PC. Not yet tested from the app.
+
 **Test to confirm (owner, at the monitor):**
 
 1. Put the MSI on the PS5 with the Navi Key. Turn the PS5 on.
@@ -101,7 +112,7 @@ Options for PC → PS5: the Navi Key (Input Source), the HDMI cabling plan below
 4. Do steps 1 to 3 again to see if it's repeatable.
 5. With the PC on screen, click **HDMI 2** once (PS5 on). Wait 10 s. Did it switch?
 
-**Decision (2026-11-20): HDMI plan.** (Before the finding above; revisit once it's tested.) The owner chose it over the DisplayPort long shots. Setup checklist (owner):
+**Decision (2026-11-20): HDMI plan.** Superseded if the screens-off switch works reliably from the app (above): then no cable is needed. The owner chose it over the DisplayPort long shots. Setup checklist (owner):
 
 1. Buy a DisplayPort-to-HDMI cable. A passive one is enough for an Acer (1080p, 75 Hz).
 2. Connect one Acer from a free graphics-card DisplayPort port to its HDMI input.

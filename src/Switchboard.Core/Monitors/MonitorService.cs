@@ -144,6 +144,37 @@ public sealed class MonitorService : IAsyncDisposable
         return new SwitchOutcome(SwitchStatus.Unconfirmed, null);
     }
 
+    /// <summary>
+    /// Sends the input command several times without waiting for an answer, for when the monitor can't
+    /// answer anyway (screens off). Returns how many sends Windows accepted.
+    /// </summary>
+    public async Task<int> SendRepeatedlyAsync(string monitorId, uint value, int count, TimeSpan interval)
+    {
+        Entry? entry;
+        lock (_lock) entry = _entries.FirstOrDefault(e => e.Snapshot.Id == monitorId);
+        if (entry?.Channel is null) return 0;
+
+        int accepted = 0;
+        for (int i = 0; i < count; i++)
+        {
+            if (i > 0) await Task.Delay(interval).ConfigureAwait(false);
+            var write = await entry.Channel.WriteAsync(VcpCodes.InputSource, value, 1).ConfigureAwait(false);
+            if (write.Ok) accepted++;
+        }
+        Log.Info($"{entry.Snapshot.Name}: sent {InputCatalog.FormatValue(value)} {count} times, {accepted} accepted");
+        return accepted;
+    }
+
+    /// <summary>Records an input we believe the monitor is on when it can't be read back.</summary>
+    public void AssumeInput(string monitorId, uint value)
+    {
+        lock (_lock)
+        {
+            var entry = _entries.FirstOrDefault(e => e.Snapshot.Id == monitorId);
+            if (entry is not null) entry.Snapshot = entry.Snapshot with { CurrentInput = value };
+        }
+    }
+
     public async ValueTask DisposeAsync()
     {
         List<Entry> entries;

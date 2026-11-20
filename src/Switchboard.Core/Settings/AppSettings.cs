@@ -39,6 +39,14 @@ public sealed class MonitorSettings
     /// <summary>Leave this monitor out of the app.</summary>
     public bool Hidden { get; set; }
 
+    /// <summary>
+    /// The input this PC is on, for monitors that ignore switch commands while showing it (the MSI G27CQ4
+    /// over DisplayPort). Switching from it to anything else first turns the screens off for a few seconds,
+    /// which makes the monitor listen. Empty: switch normally.
+    /// </summary>
+    [JsonConverter(typeof(NullableHexValueConverter))]
+    public uint? BlankScreensWhenLeaving { get; set; }
+
     /// <summary>Inputs in display order. Filled from the monitor's capabilities string; you can add inputs by value.</summary>
     public List<InputSettings> Inputs { get; set; } = new();
 }
@@ -65,6 +73,23 @@ public sealed class WindowPlacement
     public int X { get; set; }
 
     public int Y { get; set; }
+}
+
+/// <summary><see cref="HexValueConverter"/> for optional values; null stays null.</summary>
+public sealed class NullableHexValueConverter : JsonConverter<uint?>
+{
+    private static readonly HexValueConverter Inner = new();
+
+    public override bool HandleNull => true;
+
+    public override uint? Read(ref Utf8JsonReader reader, Type typeToConvert, JsonSerializerOptions options) =>
+        reader.TokenType == JsonTokenType.Null ? null : Inner.Read(ref reader, typeof(uint), options);
+
+    public override void Write(Utf8JsonWriter writer, uint? value, JsonSerializerOptions options)
+    {
+        if (value is uint v) Inner.Write(writer, v, options);
+        else writer.WriteNullValue();
+    }
 }
 
 /// <summary>Reads 17, "17", "0x11" or "11h"; writes "0x11".</summary>

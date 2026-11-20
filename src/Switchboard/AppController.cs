@@ -34,11 +34,17 @@ public sealed class AppController : ISwitchboardActions, IAsyncDisposable
     private string? _settingsProblem;
     private string? _hotkeyProblem;
     private DateTime _lastInputRefresh = DateTime.MinValue;
+    private bool _screensOffSwitchRunning;
 
     public AppController(DispatcherQueue dispatcher)
     {
         _dispatcher = dispatcher;
-        _displayChangeTimer = MakeTimer(TimeSpan.FromSeconds(1.5), () => _ = RefreshAsync(enumerate: true));
+        _displayChangeTimer = MakeTimer(TimeSpan.FromSeconds(1.5), () =>
+        {
+            // Re-finding monitors releases their handles; not while a screens-off switch is still sending.
+            if (_screensOffSwitchRunning) RestartDisplayTimer();
+            else _ = RefreshAsync(enumerate: true);
+        });
         _settingsReloadTimer = MakeTimer(TimeSpan.FromMilliseconds(400), ReloadSettingsFromDisk);
         _statusClearTimer = MakeTimer(TimeSpan.FromSeconds(8), () =>
         {
@@ -127,16 +133,25 @@ public sealed class AppController : ISwitchboardActions, IAsyncDisposable
         var vm = FindInput(monitorId, value);
         string monitorName = MonitorName(monitorId);
         string inputName = vm?.Name ?? Core.Ddc.InputCatalog.GetPortName(value);
-        if (vm is { IsCurrent: true })
+        _settings.Monitors.TryGetValue(monitorId, out var ms);
+        bool screensOff = InputLayout.NeedsScreensOff(ms, value);
+        // A monitor that needs the screens-off trick also reads back unreliably, so don't trust "already showing" there.
+        if (vm is { IsCurrent: true } && ms?.BlankScreensWhenLeaving is null)
         {
             SetStatus($"{monitorName} is already showing {inputName}.");
             return;
         }
-        if (vm is { IsBusy: true }) return;
+        if (vm is { IsBusy: true } || _screensOffSwitchRunning) return;
 
         if (vm is not null) vm.IsBusy = true;
         try
         {
+            if (screensOff)
+            {
+                await SwitchWithScreensOffAsync(monitorId, value, monitorName, inputName);
+                return;
+            }
+
             var outcome = await _monitors.SwitchAsync(monitorId, value);
             SetStatus(outcome.Status switch
             {
@@ -158,6 +173,52 @@ public sealed class AppController : ISwitchboardActions, IAsyncDisposable
             if (vm is not null) vm.IsBusy = false;
             RebuildViewModel();
         }
+    }
+
+    /// <summary>
+    /// For monitors that ignore switch commands while showing this PC (the MSI G27CQ4 over DisplayPort):
+    /// turn every screen off so no picture goes down the cable, send the command a few times, wake the screens.
+    /// Tested by hand on 2026-11-20 (scripts/quiet-link-test.ps1): the MSI switched to the PS5.
+    /// </summary>
+    private async Task SwitchWithScreensOffAsync(string monitorId, uint value, string monitorName, string inputName)
+    {
+        if (_host is null) return;
+        _screensOffSwitchRunning = true;
+        try
+        {
+            Log.Info($"{monitorName}: switching to {Core.Ddc.InputCatalog.FormatValue(value)} with the screens off");
+            _host.TurnScreensOff();
+            await Task.Delay(TimeSpan.FromSeconds(3));
+            int accepted = await _monitors.SendRepeatedlyAsync(monitorId, value, 6, TimeSpan.FromMilliseconds(500));
+            await Task.Delay(TimeSpan.FromSeconds(1.5));
+            HostWindow.WakeScreens();
+
+            if (accepted == 0)
+            {
+                SetStatus($"{monitorName} didn't take the switch. Try again.");
+                return;
+            }
+            // The monitor can't confirm over this link, so assume it worked; the screen shows whether it did.
+            _monitors.AssumeInput(monitorId, value);
+            SetStatus($"{monitorName} should now show {inputName}. The screens went dark for a moment to make it listen.");
+        }
+        finally
+        {
+            _screensOffSwitchRunning = false;
+            // Turning screens off and on can look like a display change; take one fresh look once it's over.
+            RestartDisplayTimer();
+        }
+    }
+
+    public void ToggleBlankScreensWhenLeaving(string monitorId, uint value)
+    {
+        if (!_settings.Monitors.TryGetValue(monitorId, out var ms)) return;
+        ms.BlankScreensWhenLeaving = ms.BlankScreensWhenLeaving == value ? null : value;
+        SaveSettings();
+        RebuildViewModel();
+        SetStatus(ms.BlankScreensWhenLeaving is null
+            ? $"{MonitorName(monitorId)} switches normally again."
+            : $"Switching {MonitorName(monitorId)} away from {FindInput(monitorId, value)?.Name ?? Core.Ddc.InputCatalog.GetPortName(value)} now turns the screens off for a few seconds.");
     }
 
     public void RenameInput(string monitorId, uint value, string? name)

@@ -55,7 +55,9 @@ Switchboard opens as a small window with its own taskbar button. The first time,
 }
 ```
 
-Icons: `pc`, `laptop`, `console`, `tv`, `display`. Input values are the DDC/CI values (see [docs/ddc-ci-notes.md](docs/ddc-ci-notes.md)).
+Icons: `pc`, `laptop`, `console`, `tv`, `display`.
+
+**Monitors that won't switch away from this PC** (like the MSI G27CQ4 over DisplayPort): right-click your PC's input and choose *Turn screens off when leaving this input*, or set `"blankScreensWhenLeaving": "0x0F"` on the monitor. Switching away from that input then turns all screens off for a few seconds, sends the command while no picture is on the cable, and turns them back on. Input values are the DDC/CI values (see [docs/ddc-ci-notes.md](docs/ddc-ci-notes.md)).
 
 ## Test
 

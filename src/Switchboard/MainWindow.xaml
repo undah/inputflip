@@ -46,6 +46,10 @@
                                     <MenuFlyoutItem Text="TV or media player" Command="{x:Bind SetIconCommand}" CommandParameter="tv" />
                                     <MenuFlyoutItem Text="Plain monitor" Command="{x:Bind SetIconCommand}" CommandParameter="display" />
                                 </MenuFlyoutSubItem>
+                                <MenuFlyoutItem Text="{x:Bind BlankWhenLeavingMenuText, Mode=OneWay}" Command="{x:Bind BlankWhenLeavingCommand}"
+                                    ToolTipService.ToolTip="For a monitor that ignores switch commands while it shows this PC. Switching away turns all screens off for a few seconds, which makes it listen.">
+                                    <MenuFlyoutItem.Icon><FontIcon Glyph="&#xE708;" /></MenuFlyoutItem.Icon>
+                                </MenuFlyoutItem>
                                 <MenuFlyoutSeparator />
                                 <MenuFlyoutItem Text="{x:Bind HideMenuText, Mode=OneWay}" Command="{x:Bind HideCommand}">
                                     <MenuFlyoutItem.Icon><FontIcon Glyph="&#xED1A;" /></MenuFlyoutItem.Icon>

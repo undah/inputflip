@@ -11,7 +11,8 @@ public sealed record DisplayInput(
     string Icon,
     bool Hidden,
     string? Hotkey,
-    bool IsCurrent);
+    bool IsCurrent,
+    bool BlankScreensWhenLeaving = false);
 
 /// <summary>Combines what a monitor reports with what's in settings into the list of inputs to show.</summary>
 public static class InputLayout
@@ -65,7 +66,8 @@ public static class InputLayout
                 icon is not null && Icons.Contains(icon) ? icon.ToLowerInvariant() : "display",
                 s?.Hidden ?? false,
                 string.IsNullOrWhiteSpace(s?.Hotkey) ? null : s!.Hotkey,
-                monitor.CurrentInput is uint c && InputCatalog.Matches(c, v));
+                monitor.CurrentInput is uint c && InputCatalog.Matches(c, v),
+                settings?.BlankScreensWhenLeaving == v);
         }).ToList();
     }
 
@@ -78,6 +80,13 @@ public static class InputLayout
             if (visible[i].IsCurrent) { index = i; break; }
         return visible[(index + 1) % visible.Count];
     }
+
+    /// <summary>
+    /// Whether switching this monitor to <paramref name="target"/> needs the screens turned off first:
+    /// the monitor has a "blank when leaving" input, and the target is a different input.
+    /// </summary>
+    public static bool NeedsScreensOff(MonitorSettings? settings, uint target) =>
+        settings?.BlankScreensWhenLeaving is uint pcInput && !InputCatalog.Matches(target, pcInput) && target != pcInput;
 
     /// <summary>The settings entry for an input, created if needed.</summary>
     public static InputSettings GetOrAdd(MonitorSettings settings, uint value)

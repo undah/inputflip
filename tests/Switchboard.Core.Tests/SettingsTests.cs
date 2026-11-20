@@ -143,6 +143,27 @@ public sealed class SettingsTests : IDisposable
     }
 
     [Fact]
+    public void Screens_off_setting_round_trips_and_applies_only_when_leaving()
+    {
+        var store = new SettingsStore(SettingsPath);
+        var settings = new AppSettings();
+        settings.Monitors["MSI3CB0"] = new MonitorSettings { BlankScreensWhenLeaving = 0x0F };
+        store.Save(settings);
+        Assert.Contains("\"blankScreensWhenLeaving\": \"0x0F\"", File.ReadAllText(SettingsPath));
+
+        var ms = store.Load().Settings.Monitors["MSI3CB0"];
+        Assert.Equal(0x0Fu, ms.BlankScreensWhenLeaving);
+        Assert.True(InputLayout.NeedsScreensOff(ms, 0x12));   // PC -> PS5
+        Assert.False(InputLayout.NeedsScreensOff(ms, 0x0F));  // back to the PC
+        Assert.False(InputLayout.NeedsScreensOff(new MonitorSettings(), 0x12));
+        Assert.False(InputLayout.NeedsScreensOff(null, 0x12));
+
+        var layout = InputLayout.Build(Snapshot("MSI3CB0", current: null, advertised: [0x0F, 0x12]), ms);
+        Assert.True(layout.Single(i => i.Value == 0x0F).BlankScreensWhenLeaving);
+        Assert.False(layout.Single(i => i.Value == 0x12).BlankScreensWhenLeaving);
+    }
+
+    [Fact]
     public void Next_wraps_around()
     {
         var layout = InputLayout.Build(Snapshot("MSI3CB0", current: 0x12, advertised: [0x11, 0x12]), null);
