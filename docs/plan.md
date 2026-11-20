@@ -65,7 +65,7 @@ Discovery run on 2026-11-20 on the owner's PC, which has three monitors.
 
 **Keeping DisplayPort (owner's preference, 2026-11-20): not ruled out.** The MSI answered some reads correctly over DisplayPort, so it implements DDC/CI there; something makes it unreliable. Research: "works on HDMI, not on DisplayPort" is common, and the cause varies (monitor, driver, settings); see [ddc-ci-notes.md](ddc-ci-notes.md#displayport). Experiments, cheapest first. Measure each with `-ReadTest` on the MSI (40 of 40 over HDMI). If reads become reliable, confirm with `-DimTest`.
 
-1. **Baseline:** cables back to the normal setup (MSI on DisplayPort), run `-ReadTest`.
+1. **Baseline:** cables back to the normal setup (MSI on DisplayPort), run `-ReadTest`. **Done 2026-11-20: 5 of 40** (input 5 of 20, brightness 0 of 20; mostly `0xC0262589`). The MSI is monitor 3 in the normal layout.
 2. **G-SYNC off:** NVIDIA Control Panel, Set up G-SYNC, untick Enable. A theory, not a confirmed fix. The owner has FreeSync on in the MSI's menu. It was on during the HDMI tests too, which worked, but NVIDIA most likely runs variable refresh with this monitor only over DisplayPort (G-SYNC Compatible). That makes active variable refresh the main difference between the working HDMI connection and the DisplayPort one.
 3. **FreeSync off** in the MSI's on-screen menu (currently on). Stronger than step 2: the monitor stops offering variable refresh at all.
 4. **60 Hz** in Windows display settings, temporarily.
