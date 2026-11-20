@@ -102,7 +102,9 @@ So both directions work over DisplayPort, keeping 165 Hz:
 | PC → PS5 | Screens off, send the command, screens on (about 8 s, all screens go dark) |
 | PS5 → PC | Normal command |
 
-**Built into the app:** per-monitor setting `blankScreensWhenLeaving` (the PC's input, `"0x0F"` for the MSI; also on the input's right-click menu). Switching from that input to any other uses the screens-off sequence. On for the MSI on the owner's PC. Not yet tested from the app.
+**Built into the app:** per-monitor setting `blankScreensWhenLeaving` (the PC's input, `"0x0F"` for the MSI; also on the input's right-click menu). Switching from that input to any other uses the screens-off sequence. On for the MSI on the owner's PC. **Tested from the app (2026-11-20, 22:49): works both ways** (owner confirmed). The log shows three screens-off switches (`11` at 22:49:24 and 22:49:36, `12` at 22:49:47), each with all 6 sends accepted, about 6 s per switch. Getting back to the PC needs no screens-off step (proven at 22:32).
+
+**Stage 1 is effectively done:** the MSI switches between the PC (DisplayPort) and the PS5 (HDMI) in both directions with the PS5 on, without new cables. The HDMI cabling plan isn't needed.
 
 **Test to confirm (owner, at the monitor):**
 
@@ -166,7 +168,8 @@ Built on `main`. Run it with `dotnet run --project src/Switchboard`; see the REA
 - 39 unit tests pass (parsers, hotkeys, settings, input list).
 
 **Not verified yet (owner):**
-- [ ] Clicking an input switches the monitor, and the window confirms it
+- [x] Clicking an input switches the MSI both ways with the PS5 on (2026-11-20; PC → PS5 with the screens off). The window can't confirm over DisplayPort, so it says the MSI "should now show" the input.
+- [ ] Clicking an input on an Acer switches it, and the window confirms it
 - [ ] Hotkeys, including cycle
 - [ ] Rename, icon and hide from the right-click menu
 - [x] Window remembers its position on an Acer after a restart (checked 2026-11-20)
