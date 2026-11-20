@@ -892,13 +892,27 @@ function Invoke-DimTest($Monitors, $EdidMap, [int]$Pick) {
     Write-Host 'Watch this monitor. Press Ctrl+C now to cancel.' -ForegroundColor Yellow
     for ($i = 3; $i -ge 1; $i--) { Write-Host ('  Starting in {0}...' -f $i); Start-Sleep -Seconds 1 }
 
-    $set = Send-Vcp $m $VcpBrightness $test ('Set brightness to {0}' -f $test)
+    # Send the test value every half second for 4 s, not once. Some monitors (the owner's MSI) drop
+    # DDC/CI traffic in stretches; any one command that lands changes the screen, and repeats are harmless.
+    $sent = 0
+    $accepted = 0
+    $firstMs = $null
+    $setErrors = New-Object System.Collections.Generic.List[string]
     $readBack = $null
     $clock = [Diagnostics.Stopwatch]::StartNew()
     while ($clock.ElapsedMilliseconds -lt 4000) {
-        Start-Sleep -Milliseconds 500
+        $s = Send-Vcp $m $VcpBrightness $test ('Set brightness to {0}' -f $test)
+        $sent++
+        if ($s.Ok) {
+            $accepted++
+            if ($null -eq $firstMs) { $firstMs = $s.Ms }
+        } elseif (-not $setErrors.Contains($s.Error)) {
+            $setErrors.Add($s.Error)
+        }
+        Start-Sleep -Milliseconds 250
         $r = [SwitchboardProbe.Ddc]::GetVcp($m.Handle, $VcpBrightness, 1)
         if ($r.Ok) { $readBack = [uint32]$r.Current }
+        Start-Sleep -Milliseconds 250
     }
 
     # Send the restore 3 times: repeating the same value is harmless and covers a lost command.
@@ -918,10 +932,10 @@ function Invoke-DimTest($Monitors, $EdidMap, [int]$Pick) {
     Write-Host ('Brightness test result{0}' -f $dryRun)
     Write-Host ('  Monitor:                 {0} (monitor {1})' -f $name, $m.Index)
     Write-Host ('  Test:                    brightness {0} -> {1} -> {2}' -f $nowText, $test, $restore)
-    if ($set.Ok) {
-        Write-Host ('  Command:                 accepted by Windows in {0} ms' -f $set.Ms)
-    } else {
-        Write-Host ('  Command:                 failed: {0}' -f $set.Error) -ForegroundColor Red
+    $firstText = if ($null -ne $firstMs) { ', first in {0} ms' -f $firstMs } else { '' }
+    Write-Host ('  Command:                 sent {0} times over 4 s; Windows accepted {1}{2}' -f $sent, $accepted, $firstText)
+    if ($setErrors.Count -gt 0) {
+        Write-Host ('  Command errors:          {0}' -f ($setErrors -join '; ')) -ForegroundColor Yellow
     }
     Write-Host ('  Read back during test:   {0}' -f $(if ($null -ne $readBack) { $readBack } else { 'no answer' }))
     if ($restoreErrors.Count -gt 0) {

@@ -51,6 +51,8 @@ Discovery run on 2026-11-20 on the owner's PC, which has three monitors.
 
 **Brightness test on the MSI (2026-11-20):** no visible change. Windows accepted the command in 55 ms; the read-back got no answer. Together with switch run 1: **over DisplayPort the MSI doesn't act on DDC/CI commands at all, even though Windows reports success.**
 
+**Quick re-check first (no cables to move):** that brightness test sent the dim command only once, and the MSI's DDC/CI comes and goes, so one command could have hit a bad stretch. `-DimTest` now resends the command every half second for 4 seconds. Run `-Monitor 1 -DimTest` again. If the MSI dims now, commands get through *sometimes*: the app can repeat them, and the switch test should resend too. If it still doesn't dim, do the cable swap.
+
 **Next (owner): cable swap.** Swap the monitor ends of two cables. The HDMI cable that now goes to Acer `0673` goes into the MSI's HDMI 1, and the DisplayPort cable that now goes to the MSI goes into that Acer's DisplayPort input. Monitor numbers and the Windows display layout may change, so run discovery first, then `-DimTest` on both monitors. This tests two things at once:
 
 - **MSI over HDMI:** does it act on commands now? If yes, Switchboard can work with the PC on HDMI and the other device on DisplayPort.
