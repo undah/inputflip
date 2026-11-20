@@ -76,9 +76,9 @@ Discovery run on 2026-11-20 on the owner's PC, which has three monitors.
 8. **NVIDIA's own I2C interface** (NVAPI) instead of the Windows DDC/CI API. A bigger step: needs a new probe, and it's NVIDIA-only.
    - **Built: `scripts/nvapi-probe.ps1` (2026-11-20).** Owner skipped steps 5 to 7 to try this first. Control on Acer `0673` over HDMI: reads 40 of 40, and a dim command landed (read back `10`, restored to 100).
    - **MSI over DisplayPort, reads: 0 of 40.** Every reply is `51 FF FF FF ...`: the PC's own source byte `51` echoed back, then nothing (`FF`). Same with reply delays of 50, 150 and 400 ms and I2C speeds default, 33 and 10 kHz. So over DisplayPort nothing from the MSI's DDC/CI side comes back on this route.
-   - **Still open (owner):** `nvapi-probe.ps1 -Display 3 -DimTest`. It shows whether the MSI acts on commands sent this way even though no replies come back. If it dims, try `-Display 3 -SwitchTo 0x11 -From 0x0F`.
+   - **MSI over DisplayPort, commands: no effect.** `nvapi-probe.ps1 -Display 3 -DimTest` (owner watching, 2026-11-20): no change, the same as through dxva2.
 
-If none of these work, use the HDMI cabling plan above.
+**Conclusion so far (2026-11-20):** over DisplayPort the MSI ignores DDC/CI commands on both routes (Windows dxva2 and NVIDIA's NVAPI I2C). Settings tried: G-SYNC (already off), FreeSync off, 60 Hz. Its replies are garbled through dxva2 (at best 5 of 40) and absent through NVAPI. Long shots left: steps 5 to 7 (power cycle, another cable or port, another driver). Otherwise use the HDMI cabling plan above. Over HDMI everything works.
 
 **Checked (2026-11-20):** neither Acer has a DisplayPort port, so Acer `0673`'s capabilities string lists an input (`0F`) that doesn't exist. The MSI does the same with `10` (DisplayPort 2). See [ddc-ci-notes.md](ddc-ci-notes.md#known-problems).
 
