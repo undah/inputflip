@@ -1,0 +1,101 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Switchboard UI sketch</title>
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@tabler/icons-webfont@3.19.0/dist/tabler-icons.min.css">
+<style>
+:root{
+  --bg:#f3f3f3;--surface:#ffffff;--surface-1:#f7f7f7;--border:rgba(0,0,0,.1);
+  --text:#1b1b1b;--text-2:#5c5c5c;--muted:#8a8a8a;
+  --accent-bg:#e6f1fb;--accent-border:#85b7eb;--accent-text:#0c447c;
+  --ok-bg:#eaf3de;--ok-text:#27500a;--radius:8px;
+  font-family:"Segoe UI Variable","Segoe UI",system-ui,sans-serif;
+}
+@media (prefers-color-scheme:dark){:root{
+  --bg:#1c1c1c;--surface:#2b2b2b;--surface-1:#323232;--border:rgba(255,255,255,.1);
+  --text:#f0f0f0;--text-2:#c2c2c2;--muted:#8f8f8f;
+  --accent-bg:#0c447c;--accent-border:#378add;--accent-text:#e6f1fb;
+  --ok-bg:#27500a;--ok-text:#eaf3de;
+}}
+body{margin:0;background:var(--bg);color:var(--text);padding:32px 16px}
+.wrap{max-width:760px;margin:0 auto;display:grid;grid-template-columns:minmax(0,280px) minmax(0,1fr);gap:24px;align-items:start}
+@media (max-width:640px){.wrap{grid-template-columns:1fr}}
+.card{background:var(--surface);border:1px solid var(--border);border-radius:12px}
+.cap{font-size:12px;color:var(--muted);text-align:center;margin-top:8px}
+.lbl{font-size:12px;color:var(--text-2);margin:14px 0 4px}
+.inp{display:flex;align-items:center;gap:10px;padding:8px 10px;border-radius:var(--radius);cursor:pointer;border:1px solid transparent;transition:background .15s,border-color .15s}
+.inp:hover{background:var(--surface-1)}
+.inp.on{background:var(--accent-bg);border-color:var(--accent-border)}
+.inp.on .nm,.inp.on i{color:var(--accent-text)}
+.inp i{font-size:18px}
+.nm{font-size:13px}.sub{font-size:11px;color:var(--muted)}
+.kbd{font-family:Consolas,monospace;font-size:11px;color:var(--muted);margin-left:auto}
+.nav{padding:6px 10px;border-radius:var(--radius);font-size:13px;color:var(--text-2)}
+.nav.sel{background:var(--surface-1);color:var(--text)}
+.row{display:flex;align-items:center;gap:8px;border:1px solid var(--border);border-radius:var(--radius);padding:6px 8px}
+.row input{flex:1;min-width:0;height:28px;font:inherit;font-size:13px;background:var(--surface-1);color:var(--text);border:1px solid var(--border);border-radius:6px;padding:0 8px}
+button{font:inherit;font-size:13px;background:transparent;color:var(--text);border:1px solid var(--border);border-radius:var(--radius);padding:6px 12px;cursor:pointer}
+button:hover{background:var(--surface-1)}
+h1{font-size:18px;font-weight:600;max-width:760px;margin:0 auto 4px}
+p.intro{max-width:760px;margin:0 auto 24px;color:var(--text-2);font-size:14px}
+</style>
+</head>
+<body>
+<h1>Switchboard UI sketch</h1>
+<p class="intro">Tray flyout on the left (click the inputs), settings window on the right. Not final; see docs/plan.md, stage 3.</p>
+<div class="wrap">
+  <div>
+    <div class="card" style="padding:12px 12px 10px">
+      <div style="display:flex;align-items:center;gap:8px"><i class="ti ti-switch-horizontal" style="font-size:18px" aria-hidden="true"></i><span style="font-size:14px;font-weight:600">Switchboard</span><i class="ti ti-settings" style="font-size:16px;margin-left:auto;color:var(--text-2)" aria-label="Settings"></i></div>
+      <div class="lbl">Main monitor</div>
+      <div data-g>
+        <div class="inp on"><i class="ti ti-device-desktop" aria-hidden="true"></i><div><div class="nm">Gaming PC</div><div class="sub">DisplayPort</div></div><span class="kbd">Ctrl+Alt+1</span></div>
+        <div class="inp"><i class="ti ti-device-laptop" aria-hidden="true"></i><div><div class="nm">Work laptop</div><div class="sub">HDMI 1</div></div><span class="kbd">Ctrl+Alt+2</span></div>
+        <div class="inp"><i class="ti ti-device-gamepad-2" aria-hidden="true"></i><div><div class="nm">Console</div><div class="sub">HDMI 2</div></div><span class="kbd">Ctrl+Alt+3</span></div>
+      </div>
+      <div class="lbl">Side monitor</div>
+      <div data-g>
+        <div class="inp on"><i class="ti ti-device-desktop" aria-hidden="true"></i><div><div class="nm">Gaming PC</div><div class="sub">HDMI 1</div></div></div>
+        <div class="inp"><i class="ti ti-device-laptop" aria-hidden="true"></i><div><div class="nm">Work laptop</div><div class="sub">USB-C</div></div></div>
+      </div>
+      <div id="st" style="font-size:11px;color:var(--muted);margin-top:10px;border-top:1px solid var(--border);padding-top:8px">Hotkeys on · Cycle with Ctrl+Alt+Tab</div>
+    </div>
+    <div class="cap">Tray flyout</div>
+  </div>
+  <div>
+    <div class="card" style="display:grid;grid-template-columns:110px minmax(0,1fr);overflow:hidden">
+      <div style="border-right:1px solid var(--border);padding:12px 8px;display:flex;flex-direction:column;gap:2px">
+        <div class="nav">General</div><div class="nav sel">Monitors</div><div class="nav">Hotkeys</div><div class="nav">About</div>
+      </div>
+      <div style="padding:14px 16px">
+        <div style="display:flex;align-items:center;gap:8px;flex-wrap:wrap"><span style="font-size:15px;font-weight:600">Main monitor</span><span style="font-size:11px;background:var(--ok-bg);color:var(--ok-text);padding:2px 8px;border-radius:var(--radius)">DDC/CI working</span></div>
+        <div style="font-size:12px;color:var(--text-2);margin:2px 0 12px">3 inputs found automatically</div>
+        <div style="display:flex;flex-direction:column;gap:8px">
+          <div class="row"><i class="ti ti-device-desktop" aria-hidden="true"></i><input value="Gaming PC" aria-label="Input name"><span class="sub" style="min-width:64px">DisplayPort</span><i class="ti ti-eye" style="color:var(--text-2)" aria-label="Visible"></i></div>
+          <div class="row"><i class="ti ti-device-laptop" aria-hidden="true"></i><input value="Work laptop" aria-label="Input name"><span class="sub" style="min-width:64px">HDMI 1</span><i class="ti ti-eye" style="color:var(--text-2)" aria-label="Visible"></i></div>
+          <div class="row"><i class="ti ti-device-gamepad-2" aria-hidden="true"></i><input value="Console" aria-label="Input name"><span class="sub" style="min-width:64px">HDMI 2</span><i class="ti ti-eye" style="color:var(--text-2)" aria-label="Visible"></i></div>
+        </div>
+        <div style="display:flex;gap:8px;margin-top:12px;flex-wrap:wrap"><button><i class="ti ti-plus" aria-hidden="true"></i> Add input</button><button><i class="ti ti-player-play" aria-hidden="true"></i> Test switch</button></div>
+      </div>
+    </div>
+    <div class="cap">Settings window</div>
+  </div>
+</div>
+<script>
+document.querySelectorAll('[data-g]').forEach(function(g){
+  g.querySelectorAll('.inp').forEach(function(el){
+    el.addEventListener('click',function(){
+      if(el.classList.contains('on'))return;
+      g.querySelectorAll('.inp').forEach(function(x){x.classList.remove('on')});
+      el.classList.add('on');
+      var n=el.querySelector('.nm').textContent,s=document.getElementById('st');
+      s.textContent='Switching to '+n+'…';
+      setTimeout(function(){s.textContent='Switched to '+n},600);
+    });
+  });
+});
+</script>
+</body>
+</html>

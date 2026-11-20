@@ -1,0 +1,31 @@
+# Build output
+bin/
+obj/
+out/
+publish/
+*.msix
+*.appx
+
+# Visual Studio / Rider / VS Code
+.vs/
+.idea/
+*.user
+*.suo
+*.rsuser
+.vscode/*
+!.vscode/settings.json
+!.vscode/launch.json
+
+# NuGet
+*.nupkg
+packages/
+
+# Tests
+TestResults/
+
+# OS
+Thumbs.db
+.DS_Store
+
+# Local Claude settings (shared settings in .claude/settings.json are fine to commit)
+.claude/settings.local.json
