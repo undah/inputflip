@@ -80,6 +80,16 @@ Discovery run on 2026-11-20 on the owner's PC, which has three monitors.
 
 **Conclusion so far (2026-11-20):** over DisplayPort the MSI ignores DDC/CI commands on both routes (Windows dxva2 and NVIDIA's NVAPI I2C). Settings tried: G-SYNC (already off), FreeSync off, 60 Hz. Its replies are garbled through dxva2 (at best 5 of 40) and absent through NVAPI. Long shots left: steps 5 to 7 (power cycle, another cable or port, another driver). Otherwise use the HDMI cabling plan above. Over HDMI everything works.
 
+**Decision (2026-11-20): HDMI plan.** The owner chose it over the DisplayPort long shots. Setup checklist (owner):
+
+1. Buy a DisplayPort-to-HDMI cable. A passive one is enough for an Acer (1080p, 75 Hz).
+2. Connect one Acer from a free graphics-card DisplayPort port to its HDMI input.
+3. Connect the MSI to the freed graphics-card HDMI port, on the MSI's HDMI 1. Connect the PS5 to the MSI's HDMI 2.
+4. In Windows, set the MSI to 144 Hz (its HDMI maximum).
+5. Run `ddc-probe.ps1` discovery, then with the PS5 turned on: `-Monitor <MSI> -SwitchTo 0x12`. That's the last stage 1 test (switch-back with a device active on the other input).
+
+Then stage 1 is done.
+
 **Checked (2026-11-20):** neither Acer has a DisplayPort port, so Acer `0673`'s capabilities string lists an input (`0F`) that doesn't exist. The MSI does the same with `10` (DisplayPort 2). See [ddc-ci-notes.md](ddc-ci-notes.md#known-problems).
 
 **Switch test on the MSI over HDMI:**
