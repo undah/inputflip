@@ -9,6 +9,11 @@ public partial class App : Application
     private const string MutexName = @"Local\Switchboard.SingleInstance";
     private const string ShowEventName = @"Local\Switchboard.Show";
 
+    // A copy started with another data folder (testing, --data-dir) runs alongside the normal one.
+    private static string InstanceSuffix => AppPaths.IsCustomDataDirectory
+        ? "." + Convert.ToHexString(System.Security.Cryptography.SHA256.HashData(System.Text.Encoding.UTF8.GetBytes(AppPaths.DataDirectory.ToLowerInvariant())))[..12]
+        : "";
+
     private Mutex? _singleInstance;
     private EventWaitHandle? _showEvent;
     private AppController? _controller;
@@ -23,6 +28,9 @@ public partial class App : Application
             Log.Error("Unhandled exception", e.Exception);
             e.Handled = true;
         };
+        // A missing theme resource or a broken binding is a bug worth seeing in the log.
+        DebugSettings.BindingFailed += (_, e) => Log.Warn("Binding failed: " + e.Message);
+        DebugSettings.XamlResourceReferenceFailed += (_, e) => Log.Warn("Resource missing: " + e.Message);
         TaskScheduler.UnobservedTaskException += (_, e) =>
         {
             Log.Error("Unobserved task exception", e.Exception);
@@ -32,8 +40,8 @@ public partial class App : Application
 
     protected override void OnLaunched(LaunchActivatedEventArgs args)
     {
-        _singleInstance = new Mutex(initiallyOwned: true, MutexName, out bool first);
-        _showEvent = new EventWaitHandle(false, EventResetMode.AutoReset, ShowEventName);
+        _singleInstance = new Mutex(initiallyOwned: true, MutexName + InstanceSuffix, out bool first);
+        _showEvent = new EventWaitHandle(false, EventResetMode.AutoReset, ShowEventName + InstanceSuffix);
         if (!first)
         {
             // Already running: ask that copy to show its window, then leave.
@@ -43,7 +51,7 @@ public partial class App : Application
         }
 
         var dispatcher = DispatcherQueue.GetForCurrentThread();
-        _controller = new AppController(dispatcher);
+        _controller = new AppController(dispatcher, Program.Options);
         _controller.Start();
 
         var showEvent = _showEvent;

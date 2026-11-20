@@ -1,0 +1,148 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- Styles shared by every window. Colors come from WinUI theme resources, so light, dark and the
+     Windows accent color all follow the system (or the theme picked in Settings). -->
+<ResourceDictionary
+    xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+    xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml">
+
+    <!-- An input in the main window. The fill layer carries the accent for the input showing now; the hover
+         layer sits on top, so hover and pressed show on accent rows as well as plain ones. Switching between
+         the two styles only changes Background and Foreground, so the accent fades from row to row. -->
+    <ControlTemplate x:Key="InputRowTemplate" TargetType="Button">
+        <Grid x:Name="Root" CornerRadius="{TemplateBinding CornerRadius}">
+            <VisualStateManager.VisualStateGroups>
+                <VisualStateGroup x:Name="CommonStates">
+                    <VisualState x:Name="Normal" />
+                    <VisualState x:Name="PointerOver">
+                        <VisualState.Setters>
+                            <Setter Target="Fill.Opacity" Value="0.9" />
+                            <Setter Target="Hover.Background" Value="{ThemeResource SubtleFillColorSecondaryBrush}" />
+                        </VisualState.Setters>
+                    </VisualState>
+                    <VisualState x:Name="Pressed">
+                        <VisualState.Setters>
+                            <Setter Target="Fill.Opacity" Value="0.8" />
+                            <Setter Target="Hover.Background" Value="{ThemeResource SubtleFillColorTertiaryBrush}" />
+                            <Setter Target="ContentPresenter.Opacity" Value="0.8" />
+                        </VisualState.Setters>
+                    </VisualState>
+                    <VisualState x:Name="Disabled">
+                        <VisualState.Setters>
+                            <Setter Target="ContentPresenter.Opacity" Value="0.5" />
+                        </VisualState.Setters>
+                    </VisualState>
+                </VisualStateGroup>
+            </VisualStateManager.VisualStateGroups>
+            <Border x:Name="Fill" Background="{TemplateBinding Background}" />
+            <Border x:Name="Hover" Background="Transparent" />
+            <ContentPresenter
+                x:Name="ContentPresenter"
+                Content="{TemplateBinding Content}"
+                ContentTemplate="{TemplateBinding ContentTemplate}"
+                ContentTransitions="{TemplateBinding ContentTransitions}"
+                Padding="{TemplateBinding Padding}"
+                HorizontalContentAlignment="{TemplateBinding HorizontalContentAlignment}"
+                VerticalContentAlignment="{TemplateBinding VerticalContentAlignment}"
+                Foreground="{TemplateBinding Foreground}"
+                AutomationProperties.AccessibilityView="Raw" />
+        </Grid>
+    </ControlTemplate>
+
+    <Style x:Key="InputRowStyle" TargetType="Button">
+        <Setter Property="Template" Value="{StaticResource InputRowTemplate}" />
+        <Setter Property="Background" Value="Transparent" />
+        <Setter Property="Foreground" Value="{ThemeResource TextFillColorPrimaryBrush}" />
+        <Setter Property="Padding" Value="12,0" />
+        <Setter Property="MinHeight" Value="40" />
+        <Setter Property="HorizontalAlignment" Value="Stretch" />
+        <Setter Property="HorizontalContentAlignment" Value="Stretch" />
+        <Setter Property="VerticalContentAlignment" Value="Center" />
+        <Setter Property="CornerRadius" Value="{ThemeResource ControlCornerRadius}" />
+        <Setter Property="UseSystemFocusVisuals" Value="True" />
+        <Setter Property="FocusVisualMargin" Value="-1" />
+        <Setter Property="FontFamily" Value="{ThemeResource ContentControlThemeFontFamily}" />
+        <Setter Property="FontSize" Value="{ThemeResource ControlContentThemeFontSize}" />
+    </Style>
+
+    <Style x:Key="CurrentInputRowStyle" TargetType="Button" BasedOn="{StaticResource InputRowStyle}">
+        <Setter Property="Background" Value="{ThemeResource AccentFillColorDefaultBrush}" />
+        <Setter Property="Foreground" Value="{ThemeResource TextOnAccentFillColorPrimaryBrush}" />
+    </Style>
+
+    <!-- Small borderless icon buttons: title bar, reorder arrows. Subtle fill on hover, faded when disabled. -->
+    <Style x:Key="IconButtonStyle" TargetType="Button">
+        <Setter Property="Background" Value="{ThemeResource SubtleFillColorTransparentBrush}" />
+        <Setter Property="Foreground" Value="{ThemeResource TextFillColorPrimaryBrush}" />
+        <Setter Property="Padding" Value="0" />
+        <Setter Property="Width" Value="40" />
+        <Setter Property="Height" Value="32" />
+        <Setter Property="CornerRadius" Value="{ThemeResource ControlCornerRadius}" />
+        <Setter Property="UseSystemFocusVisuals" Value="True" />
+        <Setter Property="HorizontalContentAlignment" Value="Center" />
+        <Setter Property="VerticalContentAlignment" Value="Center" />
+        <Setter Property="Template">
+            <Setter.Value>
+                <ControlTemplate TargetType="Button">
+                    <Grid x:Name="Root" Background="{TemplateBinding Background}" CornerRadius="{TemplateBinding CornerRadius}">
+                        <VisualStateManager.VisualStateGroups>
+                            <VisualStateGroup x:Name="CommonStates">
+                                <VisualState x:Name="Normal" />
+                                <VisualState x:Name="PointerOver">
+                                    <VisualState.Setters>
+                                        <Setter Target="Root.Background" Value="{ThemeResource SubtleFillColorSecondaryBrush}" />
+                                    </VisualState.Setters>
+                                </VisualState>
+                                <VisualState x:Name="Pressed">
+                                    <VisualState.Setters>
+                                        <Setter Target="Root.Background" Value="{ThemeResource SubtleFillColorTertiaryBrush}" />
+                                        <Setter Target="ContentPresenter.Foreground" Value="{ThemeResource TextFillColorSecondaryBrush}" />
+                                    </VisualState.Setters>
+                                </VisualState>
+                                <VisualState x:Name="Disabled">
+                                    <VisualState.Setters>
+                                        <Setter Target="ContentPresenter.Foreground" Value="{ThemeResource TextFillColorDisabledBrush}" />
+                                    </VisualState.Setters>
+                                </VisualState>
+                            </VisualStateGroup>
+                        </VisualStateManager.VisualStateGroups>
+                        <ContentPresenter
+                            x:Name="ContentPresenter"
+                            Content="{TemplateBinding Content}"
+                            ContentTemplate="{TemplateBinding ContentTemplate}"
+                            Padding="{TemplateBinding Padding}"
+                            HorizontalContentAlignment="{TemplateBinding HorizontalContentAlignment}"
+                            VerticalContentAlignment="{TemplateBinding VerticalContentAlignment}"
+                            Foreground="{TemplateBinding Foreground}"
+                            AutomationProperties.AccessibilityView="Raw" />
+                    </Grid>
+                </ControlTemplate>
+            </Setter.Value>
+        </Setter>
+    </Style>
+
+    <!-- A Windows 11 Settings-style card: icon, title and description on the left, a control on the right. -->
+    <Style x:Key="CardStyle" TargetType="Border">
+        <Setter Property="Background" Value="{ThemeResource CardBackgroundFillColorDefaultBrush}" />
+        <Setter Property="BorderBrush" Value="{ThemeResource CardStrokeColorDefaultBrush}" />
+        <Setter Property="BorderThickness" Value="1" />
+        <Setter Property="CornerRadius" Value="{ThemeResource OverlayCornerRadius}" />
+    </Style>
+
+    <!-- Group label above a set of cards, as in Windows Settings. -->
+    <Style x:Key="SectionHeaderStyle" TargetType="TextBlock" BasedOn="{StaticResource BodyStrongTextBlockStyle}">
+        <Setter Property="Margin" Value="1,24,0,6" />
+        <Setter Property="AutomationProperties.HeadingLevel" Value="Level2" />
+    </Style>
+
+    <Style x:Key="PageTitleStyle" TargetType="TextBlock" BasedOn="{StaticResource TitleTextBlockStyle}">
+        <Setter Property="Margin" Value="0,4,0,8" />
+        <Setter Property="AutomationProperties.HeadingLevel" Value="Level1" />
+    </Style>
+
+    <Style x:Key="DescriptionStyle" TargetType="TextBlock" BasedOn="{StaticResource CaptionTextBlockStyle}">
+        <Setter Property="Foreground" Value="{ThemeResource TextFillColorSecondaryBrush}" />
+        <Setter Property="TextWrapping" Value="Wrap" />
+    </Style>
+
+    <x:String x:Key="MonoFont">Cascadia Mono, Consolas</x:String>
+</ResourceDictionary>

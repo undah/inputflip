@@ -1,4 +1,5 @@
 using Switchboard.Core.Ddc;
+using Switchboard.Core.Interop;
 
 namespace Switchboard.Core.Monitors;
 
@@ -18,6 +19,9 @@ public enum MonitorHealth
 }
 
 /// <summary>What we know about one monitor right now. Immutable; the service publishes a new one on every change.</summary>
+/// <param name="Connection">The cable type Windows reports (DisplayPort, HDMI...).</param>
+/// <param name="CapabilitiesText">The raw capabilities string, for diagnostics.</param>
+/// <param name="HasAnswered">At least one read worked since the app started, even if the latest one failed.</param>
 public sealed record MonitorSnapshot(
     string Id,
     string Name,
@@ -26,7 +30,10 @@ public sealed record MonitorSnapshot(
     MonitorHealth Health,
     uint? CurrentInput,
     IReadOnlyList<uint>? AdvertisedInputs,
-    bool CapabilitiesFailed);
+    bool CapabilitiesFailed,
+    ConnectionKind Connection = ConnectionKind.Unknown,
+    string? CapabilitiesText = null,
+    bool HasAnswered = false);
 
 public enum SwitchStatus
 {
@@ -60,9 +67,13 @@ public sealed class MonitorService : IAsyncDisposable
 
     private readonly SemaphoreSlim _refreshGate = new(1, 1);
     private readonly object _lock = new();
-    private readonly Dictionary<string, IReadOnlyList<uint>> _capabilitiesCache = new();
+    private readonly Dictionary<string, (IReadOnlyList<uint> Inputs, string Text)> _capabilitiesCache = new();
+    private readonly HashSet<string> _answered = new(StringComparer.OrdinalIgnoreCase);
     private readonly HashSet<string> _capabilitiesInFlight = new();
     private List<Entry> _entries = new();
+
+    /// <summary>Never send a switch command (the --no-switch option). Reads still work.</summary>
+    public bool ReadOnly { get; set; }
 
     /// <summary>Raised after the monitor list or anything in a snapshot changes.</summary>
     public event Action? Changed;
@@ -106,6 +117,11 @@ public sealed class MonitorService : IAsyncDisposable
         Entry? entry;
         lock (_lock) entry = _entries.FirstOrDefault(e => e.Snapshot.Id == monitorId);
         if (entry?.Channel is null) return new SwitchOutcome(SwitchStatus.MonitorGone, null);
+        if (ReadOnly)
+        {
+            Log.Info($"{entry.Snapshot.Name}: not switching to {InputCatalog.FormatValue(value)}, started with --no-switch");
+            return new SwitchOutcome(SwitchStatus.Failed, null);
+        }
 
         Log.Info($"{entry.Snapshot.Name}: switching to {InputCatalog.FormatValue(value)}");
         var write = await entry.Channel.WriteAsync(VcpCodes.InputSource, value, WriteAttempts).ConfigureAwait(false);
@@ -125,7 +141,7 @@ public sealed class MonitorService : IAsyncDisposable
             lastReported = read.Current;
             if (InputCatalog.Matches(read.Current, value))
             {
-                Update(entry, s => s with { Health = MonitorHealth.Responding, CurrentInput = value });
+                Update(entry, s => s with { Health = MonitorHealth.Responding, CurrentInput = value, HasAnswered = true });
                 Log.Info($"{entry.Snapshot.Name}: confirmed on {InputCatalog.FormatValue(value)} after {(i + 1) * 150} ms");
                 return new SwitchOutcome(SwitchStatus.Confirmed, read.Current);
             }
@@ -153,6 +169,11 @@ public sealed class MonitorService : IAsyncDisposable
         Entry? entry;
         lock (_lock) entry = _entries.FirstOrDefault(e => e.Snapshot.Id == monitorId);
         if (entry?.Channel is null) return 0;
+        if (ReadOnly)
+        {
+            Log.Info($"{entry.Snapshot.Name}: not sending {InputCatalog.FormatValue(value)}, started with --no-switch");
+            return 0;
+        }
 
         int accepted = 0;
         for (int i = 0; i < count; i++)
@@ -175,6 +196,21 @@ public sealed class MonitorService : IAsyncDisposable
         }
     }
 
+    /// <summary>Forgets the capabilities string of a monitor and reads it again (About page, "Read again").</summary>
+    public void RereadCapabilities(string monitorId)
+    {
+        Entry? entry;
+        lock (_lock)
+        {
+            _capabilitiesCache.Remove(monitorId);
+            entry = _entries.FirstOrDefault(e => e.Snapshot.Id == monitorId);
+        }
+        if (entry is null) return;
+        Update(entry, s => s with { CapabilitiesFailed = false, CapabilitiesText = null });
+        RaiseChanged();
+        StartCapabilitiesRead(entry);
+    }
+
     public async ValueTask DisposeAsync()
     {
         List<Entry> entries;
@@ -189,7 +225,7 @@ public sealed class MonitorService : IAsyncDisposable
 
     private async Task EnumerateAsync()
     {
-        var detected = await Task.Run(MonitorEnumerator.Enumerate).ConfigureAwait(false);
+        var (detected, connections) = await Task.Run(() => (MonitorEnumerator.Enumerate(), DisplayConnections.Read())).ConfigureAwait(false);
         var taken = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
         var fresh = new List<Entry>();
 
@@ -198,8 +234,14 @@ public sealed class MonitorService : IAsyncDisposable
             var edid = EdidReader.TryRead(d.DeviceInterface);
             string id = MonitorIdentity.MakeUnique(MonitorIdentity.MakeId(edid, d.GdiDevice), taken);
             string name = MonitorIdentity.MakeName(edid, null, d.Description);
-            IReadOnlyList<uint>? caps;
-            lock (_lock) caps = _capabilitiesCache.GetValueOrDefault(id);
+            (IReadOnlyList<uint> Inputs, string Text)? caps;
+            bool answered;
+            lock (_lock)
+            {
+                caps = _capabilitiesCache.TryGetValue(id, out var cached) ? cached : null;
+                answered = _answered.Contains(id);
+            }
+            var connection = d.DeviceInterface is not null && connections.TryGetValue(d.DeviceInterface, out var kind) ? kind : ConnectionKind.Unknown;
 
             if (!d.HasHandle) Log.Warn($"{name} ({id}): Windows couldn't open it for DDC/CI: {d.Error}");
 
@@ -212,8 +254,11 @@ public sealed class MonitorService : IAsyncDisposable
                     d.Bounds,
                     d.HasHandle ? MonitorHealth.Unknown : MonitorHealth.Unavailable,
                     null,
-                    caps,
-                    false)));
+                    caps?.Inputs,
+                    false,
+                    connection,
+                    caps?.Text,
+                    answered)));
         }
 
         List<Entry> old;
@@ -232,8 +277,12 @@ public sealed class MonitorService : IAsyncDisposable
     private async Task ReadInputAsync(Entry entry)
     {
         var read = await entry.Channel!.ReadAsync(VcpCodes.InputSource, ReadAttempts).ConfigureAwait(false);
+        if (read.Ok)
+        {
+            lock (_lock) _answered.Add(entry.Snapshot.Id);
+        }
         Update(entry, s => read.Ok
-            ? s with { Health = MonitorHealth.Responding, CurrentInput = read.Current }
+            ? s with { Health = MonitorHealth.Responding, CurrentInput = read.Current, HasAnswered = true }
             : s with { Health = MonitorHealth.NotResponding, CurrentInput = null });
     }
 
@@ -255,10 +304,11 @@ public sealed class MonitorService : IAsyncDisposable
                 {
                     var inputs = CapabilitiesParser.GetInputSources(caps.Text);
                     string? model = CapabilitiesParser.GetModel(caps.Text);
-                    lock (_lock) _capabilitiesCache[id] = inputs;
+                    lock (_lock) _capabilitiesCache[id] = (inputs, caps.Text!);
                     Update(entry, s => s with
                     {
                         AdvertisedInputs = inputs,
+                        CapabilitiesText = caps.Text,
                         CapabilitiesFailed = false,
                         // Only use the capabilities model when the EDID gave no real name.
                         Name = s.Name is "Monitor" && model is not null ? model : s.Name,

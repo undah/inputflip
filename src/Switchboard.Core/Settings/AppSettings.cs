@@ -5,8 +5,8 @@ using System.Text.Json.Serialization;
 namespace Switchboard.Core.Settings;
 
 /// <summary>
-/// Everything saved in settings.json. The file is meant to be edited by hand until stage 3 adds a settings window,
-/// so names are plain and input values are written as hex strings ("0x11") to match the docs.
+/// Everything saved in settings.json. The settings window edits it, and it stays friendly to edit by hand:
+/// names are plain and input values are written as hex strings ("0x11") to match the docs.
 /// </summary>
 public sealed class AppSettings
 {
@@ -21,13 +21,16 @@ public sealed class AppSettings
     /// <summary>Monitor id the cycle shortcut acts on. Empty means the main display, or the first monitor that answers.</summary>
     public string? CycleMonitor { get; set; }
 
+    /// <summary>"light", "dark", or empty to follow Windows.</summary>
+    public string? Theme { get; set; }
+
     /// <summary>Keep the window above other windows.</summary>
     public bool AlwaysOnTop { get; set; }
 
     /// <summary>Where the window was last placed, in physical screen pixels. Empty: on a monitor other than the main one.</summary>
     public WindowPlacement? WindowPosition { get; set; }
 
-    /// <summary>Keyed by monitor id (see MonitorIdentity).</summary>
+    /// <summary>Keyed by monitor id (see MonitorIdentity). Monitors show in the order they're listed here.</summary>
     public Dictionary<string, MonitorSettings> Monitors { get; set; } = new(StringComparer.OrdinalIgnoreCase);
 }
 

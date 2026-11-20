@@ -77,6 +77,30 @@ public readonly record struct Hotkey(HotkeyModifiers Modifiers, uint VirtualKey)
         return true;
     }
 
+    /// <summary>
+    /// For the shortcut recorder: a shortcut from the keys pressed, if Switchboard can use it.
+    /// Unknown keys and combinations without Ctrl, Alt or Win give an error to show.
+    /// </summary>
+    public static bool TryCreate(HotkeyModifiers modifiers, uint virtualKey, out Hotkey hotkey, [NotNullWhen(false)] out string? error)
+    {
+        hotkey = default;
+        string key = KeyName(virtualKey);
+        if (key.StartsWith("0x", StringComparison.Ordinal))
+        {
+            error = "Switchboard can't use that key. Use a letter, a digit, F1 to F24, a number pad digit, or a key such as Home or PageUp.";
+            return false;
+        }
+        return TryParse(new Hotkey(modifiers, virtualKey).ToString(), out hotkey, out error);
+    }
+
+    /// <summary>Ctrl, Alt, Shift and Win on their own: the recorder waits for the next key.</summary>
+    public static bool IsModifierKey(uint virtualKey) =>
+        virtualKey is 0x10 or 0x11 or 0x12 or 0x5B or 0x5C or (>= 0xA0 and <= 0xA5);
+
+    /// <summary>Same shortcut, however it's written ("ctrl+shift+alt+i" equals "Ctrl+Alt+Shift+I").</summary>
+    public static bool SameShortcut(string? a, string? b) =>
+        TryParse(a, out var x, out _) && TryParse(b, out var y, out _) && x == y;
+
     public override string ToString()
     {
         var parts = new List<string>();

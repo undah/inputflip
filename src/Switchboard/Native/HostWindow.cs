@@ -49,6 +49,12 @@ internal sealed class HostWindow : IDisposable
         return true;
     }
 
+    public void UnregisterHotkey(int id)
+    {
+        Win32.UnregisterHotKey(Handle, id);
+        _hotkeyIds.Remove(id);
+    }
+
     public void UnregisterAllHotkeys()
     {
         foreach (int id in _hotkeyIds) Win32.UnregisterHotKey(Handle, id);

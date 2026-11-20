@@ -19,6 +19,8 @@ public interface ISwitchboardActions
     void ToggleMonitorHidden(string monitorId);
 
     void ToggleBlankScreensWhenLeaving(string monitorId, uint value);
+
+    void OpenSettings(string? page, string? monitorId = null);
 }
 
 public sealed class InputViewModel : ObservableObject
@@ -141,7 +143,25 @@ public sealed class InputViewModel : ObservableObject
 
     public bool IsRenaming { get => _isRenaming; set => SetProperty(ref _isRenaming, value); }
 
-    public string AccessibleName => IsCurrent ? $"{Name}, {PortName}, showing now" : $"Switch to {Name}, {PortName}";
+    public string AccessibleName => IsCurrent ? $"{Name}, showing now" : $"Switch to {Name}";
+
+    /// <summary>Narrator reads this after the name: the port, the shortcut and how to get to more options.</summary>
+    public string AccessibleHelp
+    {
+        get
+        {
+            var parts = new List<string>();
+            if (_name != _portName) parts.Add(_portName);
+            if (_hotkey is not null) parts.Add($"Shortcut {_hotkey}");
+            if (_isHidden) parts.Add("Hidden");
+            parts.Add("Press Shift+F10 for more options");
+            return string.Join(". ", parts) + ".";
+        }
+    }
+
+    public string Tooltip => _hotkey is null ? _portName : $"{_portName} ({_hotkey})";
+
+    public string RenameAccessibleName => $"New name for {_portName}";
 
     public void CommitRename(string? text)
     {
@@ -165,6 +185,9 @@ public sealed class InputViewModel : ObservableObject
         IsHidden = input.Hidden;
         BlankWhenLeaving = input.BlankScreensWhenLeaving;
         OnPropertyChanged(nameof(AccessibleName));
+        OnPropertyChanged(nameof(AccessibleHelp));
+        OnPropertyChanged(nameof(Tooltip));
+        OnPropertyChanged(nameof(RenameAccessibleName));
     }
 }
 
@@ -180,7 +203,13 @@ public sealed class MonitorViewModel : ObservableObject
         _actions = actions;
         Id = id;
         HideCommand = new RelayCommand(() => _actions.ToggleMonitorHidden(Id));
+        SettingsCommand = new RelayCommand(() => _actions.OpenSettings("monitors", Id));
+        Inputs.CollectionChanged += (_, _) => OnPropertyChanged(nameof(HasInputs));
     }
+
+    public IRelayCommand SettingsCommand { get; }
+
+    public bool HasInputs => Inputs.Count > 0;
 
     public string Id { get; }
 

@@ -1,11 +1,10 @@
-using System.Runtime.InteropServices;
-using Microsoft.UI;
+﻿using System.ComponentModel;
 using Microsoft.UI.Dispatching;
 using Microsoft.UI.Windowing;
 using Microsoft.UI.Xaml;
+using Microsoft.UI.Xaml.Automation.Peers;
 using Microsoft.UI.Xaml.Controls;
 using Microsoft.UI.Xaml.Input;
-using Microsoft.UI.Xaml.Media;
 using Switchboard.Core.Settings;
 using Switchboard.Native;
 using Switchboard.ViewModels;
@@ -30,7 +29,6 @@ public sealed partial class MainWindow : Window
     private readonly IntPtr _hwnd;
     private readonly OverlappedPresenter _presenter;
     private readonly DispatcherQueueTimer _savePositionTimer;
-    private IntPtr _icon;
     private bool _placed;
     private bool _closingForGood;
 
@@ -45,18 +43,7 @@ public sealed partial class MainWindow : Window
         _presenter.IsMaximizable = false;
         _presenter.IsMinimizable = true;
         AppWindow.SetPresenter(_presenter);
-        AppWindow.Title = "Switchboard";
-
-        // Our header is the title bar; Windows draws minimize and close on the right.
-        ExtendsContentIntoTitleBar = true;
-        SetTitleBar(TitleArea);
-        AppWindow.TitleBar.PreferredHeightOption = TitleBarHeightOption.Tall;
-        AppWindow.TitleBar.ButtonBackgroundColor = Colors.Transparent;
-        AppWindow.TitleBar.ButtonInactiveBackgroundColor = Colors.Transparent;
-
-        _icon = IconFactory.CreateAppIcon(64);
-        if (_icon != IntPtr.Zero) AppWindow.SetIcon(Win32Interop.GetIconIdFromIcon(_icon));
-        SystemBackdrop = new MicaBackdrop();
+        WindowChrome.SetUp(this, TitleArea, "Switchboard");
 
         AppWindow.Closing += (_, e) =>
         {
@@ -70,6 +57,11 @@ public sealed partial class MainWindow : Window
             if (e.WindowActivationState != WindowActivationState.Deactivated) _controller.OnWindowActivated();
         };
         Root.Loaded += (_, _) => UpdateCaptionSpace();
+        ViewModel.PropertyChanged += OnViewModelChanged;
+        PinButton.IsChecked = ViewModel.AlwaysOnTop;
+        // Ctrl+, opens settings, as in many Windows apps. Not a KeyboardAccelerator: WinUI crashes on the comma key
+        // (VK_OEM_COMMA has no VirtualKey name) when it builds the accelerator's tooltip text.
+        Root.AddHandler(UIElement.KeyDownEvent, new KeyEventHandler(Root_KeyDown), handledEventsToo: true);
 
         _savePositionTimer = DispatcherQueue.CreateTimer();
         _savePositionTimer.Interval = TimeSpan.FromMilliseconds(600);
@@ -112,26 +104,41 @@ public sealed partial class MainWindow : Window
     {
         _closingForGood = true;
         Close();
-        if (_icon != IntPtr.Zero) Win32.DestroyIcon(_icon);
-        _icon = IntPtr.Zero;
     }
+
+    /// <summary>The display the window is on, for opening other windows next to it.</summary>
+    public DisplayArea Display => DisplayArea.GetFromWindowId(AppWindow.Id, DisplayAreaFallback.Primary);
 
     /// <summary>Sizes the window to its content, keeping its top-left corner where it is.</summary>
     public void FitToContent()
     {
-        double scale = Scale();
+        double scale = WindowChrome.Scale(this);
         Root.UpdateLayout();
         Root.Measure(new Size(WidthDip, double.PositiveInfinity));
         double height = Math.Ceiling(Root.DesiredSize.Height);
-        var work = DisplayArea.GetFromWindowId(AppWindow.Id, DisplayAreaFallback.Primary).WorkArea;
+        var work = Display.WorkArea;
         double maxHeight = work.Height / scale - 2 * EdgeMarginDip;
         Resize(WidthDip, Math.Clamp(height, MinHeightDip, Math.Max(MinHeightDip, maxHeight)));
     }
 
     private void Resize(double widthDip, double heightDip)
     {
-        double scale = Scale();
-        AppWindow.ResizeClient(new SizeInt32((int)Math.Round(widthDip * scale), (int)Math.Round(heightDip * scale)));
+        double scale = WindowChrome.Scale(this);
+        int width = (int)Math.Round(widthDip * scale), height = (int)Math.Round(heightDip * scale);
+        // Our content runs under the title bar, so the area XAML gets isn't AppWindow's client area
+        // (that one leaves out a system title bar we don't show). Size the window from what XAML gets.
+        var xaml = Root.XamlRoot?.Size;
+        if (xaml is { Width: > 0, Height: > 0 } area)
+        {
+            var outer = AppWindow.Size;
+            int extraW = outer.Width - (int)Math.Round(area.Width * scale);
+            int extraH = outer.Height - (int)Math.Round(area.Height * scale);
+            AppWindow.Resize(new SizeInt32(width + extraW, height + extraH));
+        }
+        else
+        {
+            AppWindow.ResizeClient(new SizeInt32(width, height));
+        }
     }
 
     /// <summary>
@@ -153,7 +160,7 @@ public sealed partial class MainWindow : Window
         }
 
         var work = target.WorkArea;
-        int margin = (int)Math.Round(EdgeMarginDip * Scale());
+        int margin = (int)Math.Round(EdgeMarginDip * WindowChrome.Scale(this));
         var size = AppWindow.Size;
         AppWindow.Move(new PointInt32(work.X + work.Width - size.Width - margin, work.Y + margin));
     }
@@ -163,14 +170,8 @@ public sealed partial class MainWindow : Window
 
     private void UpdateCaptionSpace()
     {
-        double inset = AppWindow.TitleBar.RightInset / Scale();
+        double inset = AppWindow.TitleBar.RightInset / WindowChrome.Scale(this);
         if (inset > 0) CaptionSpace.Width = new GridLength(inset);
-    }
-
-    private double Scale()
-    {
-        uint dpi = GetDpiForWindow(_hwnd);
-        return dpi == 0 ? 1.0 : dpi / 96.0;
     }
 
     private void OnAppWindowChanged(AppWindow sender, AppWindowChangedEventArgs args)
@@ -182,20 +183,43 @@ public sealed partial class MainWindow : Window
         }
         if (args.DidPositionChange)
         {
-            // Moving to a monitor with different scaling changes the caption button width.
+            // Moving to a monitor with different scaling changes the caption button width and the window's size in pixels.
             UpdateCaptionSpace();
         }
     }
 
+    private void OnViewModelChanged(object? sender, PropertyChangedEventArgs e)
+    {
+        if (e.PropertyName == nameof(MainViewModel.AlwaysOnTop))
+        {
+            PinButton.IsChecked = ViewModel.AlwaysOnTop;
+        }
+        else if (e.PropertyName == nameof(MainViewModel.Status) && ViewModel.HasStatus)
+        {
+            // Narrator reads status changes ("switched to PS5") without moving focus.
+            DispatcherQueue.TryEnqueue(() =>
+                FrameworkElementAutomationPeer.FromElement(StatusText)?.RaiseAutomationEvent(AutomationEvents.LiveRegionChanged));
+        }
+    }
+
+    private void Root_KeyDown(object sender, KeyRoutedEventArgs e)
+    {
+        const Windows.System.VirtualKey Comma = (Windows.System.VirtualKey)0xBC;
+        if (e.Key != Comma) return;
+        var ctrl = Microsoft.UI.Input.InputKeyboardSource.GetKeyStateForCurrentThread(Windows.System.VirtualKey.Control);
+        if (!ctrl.HasFlag(Windows.UI.Core.CoreVirtualKeyStates.Down)) return;
+        e.Handled = true;
+        _controller.OpenSettings(null);
+    }
+
     private void Refresh_Click(object sender, RoutedEventArgs e) => _ = _controller.RefreshAsync(enumerate: true);
 
-    private void AlwaysOnTop_Click(object sender, RoutedEventArgs e) => _controller.SetAlwaysOnTop(!ViewModel.AlwaysOnTop);
+    private void AlwaysOnTop_Click(object sender, RoutedEventArgs e) =>
+        _controller.SetAlwaysOnTop(PinButton.IsChecked == true);
+
+    private void Settings_Click(object sender, RoutedEventArgs e) => _controller.OpenSettings(null);
 
     private void ShowHidden_Click(object sender, RoutedEventArgs e) => _controller.ToggleShowHidden();
-
-    private void EditSettings_Click(object sender, RoutedEventArgs e) => _controller.EditSettingsFile();
-
-    private void OpenLog_Click(object sender, RoutedEventArgs e) => _controller.OpenLog();
 
     private void RenameBox_Loaded(object sender, RoutedEventArgs e)
     {
@@ -225,7 +249,4 @@ public sealed partial class MainWindow : Window
     {
         if (sender is TextBox { DataContext: InputViewModel input } box) input.CommitRename(box.Text);
     }
-
-    [DllImport("user32.dll")]
-    private static extern uint GetDpiForWindow(IntPtr hWnd);
 }

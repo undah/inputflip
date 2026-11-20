@@ -6,6 +6,10 @@
     <TargetPlatformMinVersion>10.0.17763.0</TargetPlatformMinVersion>
     <RootNamespace>Switchboard</RootNamespace>
     <ApplicationManifest>app.manifest</ApplicationManifest>
+    <ApplicationIcon>Assets\Switchboard.ico</ApplicationIcon>
+    <Version>1.0.0</Version>
+    <Product>Switchboard</Product>
+    <Description>Switches your monitor's input over DDC/CI</Description>
     <Platforms>x64;ARM64</Platforms>
     <RuntimeIdentifiers>win-x64;win-arm64</RuntimeIdentifiers>
     <Platform Condition="'$(Platform)' == '' or '$(Platform)' == 'AnyCPU'">x64</Platform>
@@ -15,6 +19,8 @@
     <!-- Unpackaged, with the Windows App SDK runtime copied next to the exe: no MSIX, no separate runtime install. -->
     <WindowsPackageType>None</WindowsPackageType>
     <WindowsAppSDKSelfContained>true</WindowsAppSDKSelfContained>
+    <!-- Program.cs has Main: it reads the command line and runs Velopack's install hooks before the UI starts. -->
+    <DefineConstants>$(DefineConstants);DISABLE_XAML_GENERATED_MAIN</DefineConstants>
     <ImplicitUsings>enable</ImplicitUsings>
     <Nullable>enable</Nullable>
     <AllowUnsafeBlocks>true</AllowUnsafeBlocks>
@@ -24,10 +30,21 @@
     <AppendRuntimeIdentifierToOutputPath>false</AppendRuntimeIdentifierToOutputPath>
   </PropertyGroup>
 
+  <!-- Release builds carry the .NET runtime too, so friends don't need .NET installed. See scripts/build-installer.ps1. -->
+  <PropertyGroup Condition="'$(Configuration)' == 'Release'">
+    <SelfContained>true</SelfContained>
+  </PropertyGroup>
+
   <ItemGroup>
     <!-- 1.8 rather than 2.x: the stable line this code was written against. -->
     <PackageReference Include="Microsoft.WindowsAppSDK" Version="1.8.260921001" />
     <PackageReference Include="CommunityToolkit.Mvvm" Version="8.4.0" />
+    <!-- Installer and its install/uninstall hooks. Keep in step with the vpk tool version in scripts/build-installer.ps1. -->
+    <PackageReference Include="Velopack" Version="1.2.161" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <Content Include="Assets\Switchboard.ico" CopyToOutputDirectory="PreserveNewest" />
   </ItemGroup>
 
   <ItemGroup>

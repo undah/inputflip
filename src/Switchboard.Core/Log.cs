@@ -41,8 +41,23 @@ public static class Log
 
 public static class AppPaths
 {
-    public static string DataDirectory { get; } =
+    /// <summary>%LOCALAPPDATA%\Switchboard: settings.json and switchboard.log.</summary>
+    public static string DefaultDataDirectory { get; } =
         Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData), "Switchboard");
 
+    public static string DataDirectory { get; private set; } = DefaultDataDirectory;
+
+    /// <summary>True when started with --data-dir or SWITCHBOARD_DATA_DIR (testing, first-run setup).</summary>
+    public static bool IsCustomDataDirectory { get; private set; }
+
     public static string SettingsFile => Path.Combine(DataDirectory, "settings.json");
+
+    /// <summary>Uses another folder for settings and the log. Call before anything else is logged.</summary>
+    public static void UseDataDirectory(string? directory)
+    {
+        if (string.IsNullOrWhiteSpace(directory)) return;
+        DataDirectory = Path.GetFullPath(Environment.ExpandEnvironmentVariables(directory.Trim()));
+        IsCustomDataDirectory = !string.Equals(DataDirectory, DefaultDataDirectory, StringComparison.OrdinalIgnoreCase);
+        Log.FilePath = Path.Combine(DataDirectory, "switchboard.log");
+    }
 }
