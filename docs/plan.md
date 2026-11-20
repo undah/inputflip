@@ -109,15 +109,15 @@ If the screen doesn't come back after a switch, the right side of the Navi Key o
 
 ### Steps
 
-- [x] **Project setup:** WinUI 3 app (`src/Switchboard`), tray icon only, no taskbar button, single instance.
+- [x] **Project setup:** WinUI 3 app (`src/Switchboard`), single instance. First built as a tray app; changed to a normal window at the owner's request (see below).
 - [x] **Monitor service** (`src/Switchboard.Core/Monitors`)
   - [x] Find monitors with `EnumDisplayMonitors` → `GetPhysicalMonitorsFromHMONITOR`
   - [x] Match each to a model name and serial from its EDID so settings stay attached to the right monitor after a reboot or cable swap. Reads the EDID Windows caches in the registry instead of WMI: faster, no extra package, and the parser is unit-tested.
   - [x] Read and switch inputs on a background thread: one serial queue per monitor, retries with backoff, timeouts. A switch is confirmed by reading the input back for up to 1.5 s; without a read-back it's reported as unconfirmed, not failed.
   - [x] Refresh the monitor list when displays are connected or disconnected (`WM_DISPLAYCHANGE`), and after waking from sleep.
 - [x] **Settings store:** JSON file in `%LOCALAPPDATA%\Switchboard\settings.json` for monitor nicknames, input names, icons, hidden inputs, hotkeys and custom input values. Values are written as `"0x11"`. Comments and trailing commas are allowed. A file with a mistake is never overwritten, and edits reload by themselves.
-- [x] **Tray flyout:** list of monitors with their inputs. Click an input to switch; the current input is highlighted. Right-click an input to rename it, pick an icon or hide it.
-  - It must be reachable while the switched monitor shows the other device. On Windows 11, tray icons appear only on the main display's taskbar, so if the MSI is the main display, the tray icon disappears along with the picture. **Built:** a "keep open" pin in the window's header turns it into a small always-on-top window you drag by its header, for example onto an Acer. Its position is remembered. Hotkeys work too.
+- [x] **App window** (was "tray flyout"): list of monitors with their inputs. Click an input to switch; the current input is highlighted. Right-click an input to rename it, pick an icon or hide it.
+  - It must be reachable while the switched monitor shows the other device. On Windows 11, tray icons appear only on the main display's taskbar, which disappears with the MSI's picture. **Decision (owner, 2026-11-20): a normal app window instead of a tray app**, kept open on an Acer. It has a taskbar button, opens where it was last left (first time: a monitor other than the main one), and closing it quits. The pin keeps it on top; the "…" button has Edit settings file and Open log. Hotkeys work too.
 - [x] **Hotkeys:** global shortcut per input (`"hotkey"` on an input in settings.json), plus `Ctrl+Alt+Shift+I` to cycle the main monitor's visible inputs and `Ctrl+Alt+Shift+S` to open the window. The defaults avoid `Ctrl+Alt+letter`, which is AltGr on many keyboard layouts.
 - [x] **Error handling:** plain messages such as "MSI G27CQ4 didn't respond. Check that DDC/CI is on in its menu, then try again." Raw errors go to `%LOCALAPPDATA%\Switchboard\switchboard.log` (tray menu: Open log).
 
@@ -126,7 +126,7 @@ If the screen doesn't come back after a switch, the right side of the Navi Key o
 Built on `main`. Run it with `dotnet run --project src/Switchboard`; see the README.
 
 **Verified on the owner's PC** (MSI still on DisplayPort, both Acers connected):
-- Starts in the tray; a second launch opens the running copy's window instead of starting another.
+- Opens as a window on a side monitor; reopens where it was dragged (left Acer); a second launch brings the running copy to the front instead of starting another.
 - Finds all three monitors with names from their EDID: `MSI G27CQ4` (`MSI3CB0-000000D1`), `Acer VG240Y` (`ACR0673-83001C4F`), `VG240Y` (`ACR06F0-TG5EE0018529`).
 - Reads both Acers' capabilities strings (5.2 to 5.8 s each, in the background) and current inputs.
 - The MSI's capabilities string fails over DisplayPort, as in stage 1, so the window offers the usual ports for it (HDMI 1 and 2, DisplayPort 1 and 2).
@@ -137,7 +137,8 @@ Built on `main`. Run it with `dotnet run --project src/Switchboard`; see the REA
 - [ ] Clicking an input switches the monitor, and the window confirms it
 - [ ] Hotkeys, including cycle
 - [ ] Rename, icon and hide from the right-click menu
-- [ ] Keep-open window: drag to an Acer, position remembered after a restart
+- [x] Window remembers its position on an Acer after a restart (checked 2026-11-20)
+- [ ] Pin (always on top) and minimize
 - [ ] Sleep and wake, unplugging a monitor
 
 Best done once the MSI is on HDMI (stage 1 cabling plan): over DisplayPort it ignores commands.

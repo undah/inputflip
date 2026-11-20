@@ -1,6 +1,6 @@
 # Switchboard
 
-A small Windows tray app that switches which input (HDMI, DisplayPort, USB-C) your monitor shows, with one click or a hotkey.
+A small Windows app that switches which input (HDMI, DisplayPort, USB-C) your monitor shows, with one click or a hotkey.
 
 It talks to the monitor over **DDC/CI**, the control channel that runs over the display cable, using the standard "Input Source" command (VCP code `0x60`).
 
@@ -9,7 +9,7 @@ It talks to the monitor over **DDC/CI**, the control channel that runs over the 
 ## Status
 
 - **Stage 1** (proof of concept): almost done. [scripts/ddc-probe.ps1](scripts/ddc-probe.ps1) finds monitors, reads their inputs over DDC/CI and tests switching.
-- **Stage 2** (working app): built, waiting for hands-on testing. A tray app that lists your monitors and switches inputs with a click or a hotkey.
+- **Stage 2** (working app): built, waiting for hands-on testing. A small window that lists your monitors and switches inputs with a click or a hotkey.
 
 See [docs/plan.md](docs/plan.md) for the stage-by-stage plan and progress checklist.
 
@@ -27,12 +27,12 @@ Then, from the repo folder:
 dotnet run --project src/Switchboard
 ```
 
-Switchboard goes to the notification area (the tray). On the first run it also opens its window.
+Switchboard opens as a small window with its own taskbar button. The first time, it opens on a monitor other than your main one; after that, wherever you last left it. Closing it quits the app.
 
 - **Click an input** to switch to it. **Right-click** an input to rename it, pick an icon or hide it.
-- The **pin** button keeps the window open on top. Drag it by its header, for example onto a monitor you aren't switching.
-- **Shortcuts:** `Ctrl+Alt+Shift+I` switches the main monitor to its next input; `Ctrl+Alt+Shift+S` opens the window.
-- **Right-click the tray icon** for Refresh, Edit settings file, Open log and Quit.
+- The **pin** button keeps the window on top of other windows.
+- The **…** button has Edit settings file and Open log.
+- **Shortcuts** (work while Switchboard is running, even minimized): `Ctrl+Alt+Shift+I` switches the main monitor to its next input; `Ctrl+Alt+Shift+S` brings the window to the front.
 
 ### Settings file
 
@@ -70,7 +70,7 @@ dotnet test
 | [docs/plan.md](docs/plan.md) | Stages 1–3 in detail, with a progress checklist |
 | [docs/architecture.md](docs/architecture.md) | How the program is put together |
 | [docs/ddc-ci-notes.md](docs/ddc-ci-notes.md) | DDC/CI background, input values, known problems and workarounds |
-| [docs/ui-sketch.html](docs/ui-sketch.html) | Clickable sketch of the tray flyout and settings window (open it in a browser) |
+| [docs/ui-sketch.html](docs/ui-sketch.html) | Early clickable sketch of the switch window and settings window (open it in a browser). The app is now a normal window rather than a tray flyout. |
 | [CLAUDE.md](CLAUDE.md) | Context for Claude Code sessions working on this repo |
 
 ## Tech stack
@@ -78,7 +78,7 @@ dotnet test
 - C# / .NET 10
 - WinUI 3 (Windows App SDK 1.8, unpackaged)
 - CommunityToolkit.Mvvm
-- Win32 `dxva2.dll` for DDC/CI, `RegisterHotKey` for global hotkeys, `Shell_NotifyIcon` for the tray icon
+- Win32 `dxva2.dll` for DDC/CI, `RegisterHotKey` for global hotkeys
 
 ## Requirements
 

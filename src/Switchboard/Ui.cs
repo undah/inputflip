@@ -31,7 +31,7 @@ public static class Ui
 
     public static Visibility Collapsed(bool value) => value ? Visibility.Collapsed : Visibility.Visible;
 
-    public static string PinGlyph(bool keepOpen) => keepOpen ? "" : "";
+    public static string PinGlyph(bool alwaysOnTop) => alwaysOnTop ? "" : "";
 
     private static Brush Brush(string key) => (Brush)Application.Current.Resources[key];
 }

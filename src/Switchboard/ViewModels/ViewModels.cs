@@ -217,7 +217,7 @@ public sealed class MainViewModel : ObservableObject
     private string _status = "";
     private bool _showHidden;
     private int _hiddenCount;
-    private bool _keepOpen;
+    private bool _alwaysOnTop;
     private bool _isRefreshing;
 
     public ObservableCollection<MonitorViewModel> Monitors { get; } = new();
@@ -271,16 +271,16 @@ public sealed class MainViewModel : ObservableObject
 
     public string HiddenToggleText => _showHidden ? "Done" : $"Show hidden ({_hiddenCount})";
 
-    public bool KeepOpen
+    public bool AlwaysOnTop
     {
-        get => _keepOpen;
+        get => _alwaysOnTop;
         set
         {
-            if (SetProperty(ref _keepOpen, value)) OnPropertyChanged(nameof(KeepOpenTooltip));
+            if (SetProperty(ref _alwaysOnTop, value)) OnPropertyChanged(nameof(AlwaysOnTopTooltip));
         }
     }
 
-    public string KeepOpenTooltip => _keepOpen ? "Stop keeping this window open" : "Keep this window open (you can drag it to another monitor)";
+    public string AlwaysOnTopTooltip => _alwaysOnTop ? "Stop keeping on top" : "Keep on top of other windows";
 
     public bool IsRefreshing { get => _isRefreshing; set => SetProperty(ref _isRefreshing, value); }
 

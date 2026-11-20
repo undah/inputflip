@@ -4,7 +4,7 @@ Context for Claude Code sessions working on this repo. Several Claude accounts w
 
 ## Project
 
-Switchboard: a Windows tray app that switches a monitor's input (HDMI / DisplayPort / USB-C) over DDC/CI, VCP code `0x60`. Working name.
+Switchboard: a small Windows app that switches a monitor's input (HDMI / DisplayPort / USB-C) over DDC/CI, VCP code `0x60`. Working name.
 
 - Plan and progress checklist: `docs/plan.md`
 - Architecture: `docs/architecture.md`
@@ -29,17 +29,17 @@ Check `docs/plan.md`: ticked boxes are done, the "Results" table in stage 1 hold
 - C# / **.NET 10** (LTS). Not .NET 8: its support ended on 2026-11-10. Build needs the .NET 10 SDK (`winget install Microsoft.DotNet.SDK.10`).
 - WinUI 3 on **Windows App SDK 1.8**, unpackaged and self-contained (`WindowsPackageType=None`, `WindowsAppSDKSelfContained=true`): no MSIX, no separate runtime install. 2.x exists but this code was written against 1.8; upgrade deliberately.
 - CommunityToolkit.Mvvm 8.4, used without its source generators (plain `ObservableObject.SetProperty`).
-- **Tray icon is our own Win32 code** (`src/Switchboard/Native`), not H.NotifyIcon: one hidden window handles tray clicks, hotkeys, display changes and resume, and the icon is drawn in code to match the taskbar theme.
+- **A normal app window, not a tray app** (owner's choice, 2026-11-20): taskbar button, opens where it was last left (first time: a monitor other than the main one), close quits. The title bar is our header (`ExtendsContentIntoTitleBar`). A hidden Win32 window (`src/Switchboard/Native/HostWindow.cs`) handles hotkeys, display changes and resume. The taskbar icon is drawn in code (`IconFactory`).
 - DDC/CI through `dxva2.dll` P/Invoke; hotkeys through `RegisterHotKey`.
 - Monitor identity from the EDID Windows caches in the registry (`HKLM\SYSTEM\CurrentControlSet\Enum\DISPLAY\...\Device Parameters\EDID`), not WMI.
 - Settings in `%LOCALAPPDATA%\Switchboard\settings.json`, log in `switchboard.log` next to it.
-- Default hotkeys avoid `Ctrl+Alt+letter`/digit (AltGr on many layouts): `Ctrl+Alt+Shift+I` cycles, `Ctrl+Alt+Shift+S` opens the window.
+- Default hotkeys avoid `Ctrl+Alt+letter`/digit (AltGr on many layouts): `Ctrl+Alt+Shift+I` cycles, `Ctrl+Alt+Shift+S` brings the window to the front.
 - Stage 1 probe is a PowerShell script (`scripts/ddc-probe.ps1`) using `Add-Type` so it runs with no build step.
 
 ## Code layout
 
 - `src/Switchboard.Core`: no UI. DDC/CI interop and the per-monitor queue (`Monitors/`), capabilities and EDID parsing, settings, hotkey parsing, input list logic (`Settings/InputLayout.cs`). Unit-tested.
-- `src/Switchboard`: the WinUI app. `AppController` owns the services and the view model; `FlyoutWindow` is the switch window; `Native/` is the Win32 host window, tray icon and icon drawing.
+- `src/Switchboard`: the WinUI app. `AppController` owns the services and the view model; `MainWindow` is the app window; `Native/` is the Win32 host window and icon drawing.
 - `tests/Switchboard.Core.Tests`: xUnit. `dotnet test` from the repo root.
 - The app project turns off the framework/runtime folders in its output path, because the XAML compiler fails on paths over 260 characters when the repo sits deep in the file system.
 

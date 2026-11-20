@@ -12,7 +12,7 @@ public sealed class AppSettings
 {
     public int Version { get; set; } = 1;
 
-    /// <summary>Opens the switch window. Default avoids Ctrl+Alt+letter, which is AltGr on many keyboard layouts.</summary>
+    /// <summary>Brings the window to the front. Default avoids Ctrl+Alt+letter, which is AltGr on many keyboard layouts.</summary>
     public string? ShowHotkey { get; set; } = "Ctrl+Alt+Shift+S";
 
     /// <summary>Switches <see cref="CycleMonitor"/> to its next visible input.</summary>
@@ -21,11 +21,11 @@ public sealed class AppSettings
     /// <summary>Monitor id the cycle shortcut acts on. Empty means the main display, or the first monitor that answers.</summary>
     public string? CycleMonitor { get; set; }
 
-    /// <summary>Keep the switch window open as a small always-on-top window, for example on a second monitor.</summary>
-    public bool KeepOpen { get; set; }
+    /// <summary>Keep the window above other windows.</summary>
+    public bool AlwaysOnTop { get; set; }
 
-    /// <summary>Where the kept-open window was last placed, in physical pixels.</summary>
-    public WindowPlacement? KeepOpenPosition { get; set; }
+    /// <summary>Where the window was last placed, in physical screen pixels. Empty: on a monitor other than the main one.</summary>
+    public WindowPlacement? WindowPosition { get; set; }
 
     /// <summary>Keyed by monitor id (see MonitorIdentity).</summary>
     public Dictionary<string, MonitorSettings> Monitors { get; set; } = new(StringComparer.OrdinalIgnoreCase);

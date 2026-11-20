@@ -139,7 +139,7 @@ public sealed class SettingsTests : IDisposable
         store.Save(new AppSettings());
         string json = File.ReadAllText(SettingsPath);
         Assert.Contains("\"Ctrl+Alt+Shift+I\"", json);
-        Assert.DoesNotContain("keepOpen", json);
+        Assert.DoesNotContain("alwaysOnTop", json);
     }
 
     [Fact]

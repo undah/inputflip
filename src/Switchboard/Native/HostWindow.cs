@@ -4,19 +4,16 @@ using Switchboard.Core;
 namespace Switchboard.Native;
 
 /// <summary>
-/// A hidden top-level Win32 window that receives what WinUI windows don't expose: tray icon clicks,
-/// global hotkeys, display changes, resume from sleep and taskbar theme changes.
+/// A hidden top-level Win32 window that receives what WinUI windows don't expose:
+/// global hotkeys, display changes and resume from sleep.
 /// Created on the UI thread, so its messages arrive through the WinUI message loop.
 /// </summary>
 internal sealed class HostWindow : IDisposable
 {
-    public const uint TrayCallbackMessage = Win32.WM_APP + 1;
-
     private const string ClassName = "SwitchboardHostWindow";
     private static Win32.WndProc? s_wndProc; // kept alive for the life of the process
     private static HostWindow? s_instance;
 
-    private readonly uint _taskbarCreatedMessage;
     private readonly HashSet<int> _hotkeyIds = new();
 
     public HostWindow()
@@ -34,23 +31,15 @@ internal sealed class HostWindow : IDisposable
         Win32.RegisterClassEx(ref wc);
         Handle = Win32.CreateWindowEx(Win32.WS_EX_TOOLWINDOW, ClassName, "Switchboard", Win32.WS_POPUP, 0, 0, 0, 0, IntPtr.Zero, IntPtr.Zero, instance, IntPtr.Zero);
         if (Handle == IntPtr.Zero) Log.Error($"Creating the host window failed: {Marshal.GetLastPInvokeError()}");
-        _taskbarCreatedMessage = Win32.RegisterWindowMessage("TaskbarCreated");
     }
 
     public IntPtr Handle { get; }
-
-    /// <summary>Tray icon event (NIN_SELECT, NIN_KEYSELECT or WM_CONTEXTMENU) with the click position.</summary>
-    public event Action<int, int, int>? TrayEvent;
 
     public event Action<int>? HotkeyPressed;
 
     public event Action? DisplaysChanged;
 
     public event Action? Resumed;
-
-    public event Action? TaskbarCreated;
-
-    public event Action? ThemeChanged;
 
     /// <summary>Registers a global hotkey. False if another app already owns the combination.</summary>
     public bool RegisterHotkey(int id, uint modifiers, uint vk)
@@ -93,10 +82,6 @@ internal sealed class HostWindow : IDisposable
     {
         switch (msg)
         {
-            case TrayCallbackMessage:
-                // NOTIFYICON_VERSION_4: event in the low word of lParam, anchor point in wParam.
-                TrayEvent?.Invoke(Win32.LoWord(lParam), Win32.LoWord(wParam), Win32.HiWord(wParam));
-                return true;
             case Win32.WM_HOTKEY:
                 HotkeyPressed?.Invoke((int)wParam);
                 return true;
@@ -106,15 +91,7 @@ internal sealed class HostWindow : IDisposable
             case Win32.WM_POWERBROADCAST when (int)wParam == Win32.PBT_APMRESUMEAUTOMATIC:
                 Resumed?.Invoke();
                 return false;
-            case Win32.WM_SETTINGCHANGE when lParam != IntPtr.Zero && Marshal.PtrToStringUni(lParam) == "ImmersiveColorSet":
-                ThemeChanged?.Invoke();
-                return false;
             default:
-                if (msg == _taskbarCreatedMessage)
-                {
-                    TaskbarCreated?.Invoke();
-                    return false;
-                }
                 return false;
         }
     }

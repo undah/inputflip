@@ -3,7 +3,7 @@
 ```mermaid
 flowchart TD
     subgraph UI["What you see"]
-        F[Tray flyout<br/>click to switch]
+        F[App window<br/>click to switch]
         S[Settings window<br/>names, hotkeys]
         K[Keyboard shortcut<br/>Ctrl+Alt+1, 2, 3]
     end
@@ -49,8 +49,8 @@ The hotkey service hands its switch requests to the monitor service, so a shortc
 - Detects conflicts (registration fails) and reports them to the settings UI.
 
 ### UI (WinUI 3)
-- **Tray icon:** our own `Shell_NotifyIcon` code on a hidden Win32 window (`Native/HostWindow.cs`), which also receives hotkeys, display changes, resume from sleep and theme changes. The icon is drawn in code in white or black to match the taskbar.
-- **Switch window** (`FlyoutWindow`): borderless, always on top, acrylic background, anchored above the tray; hides when you click elsewhere. With the pin on, it stays open and can be dragged by its header.
+- **App window** (`MainWindow`): fixed width, sized to its content, Mica background, our header as the title bar. Taskbar button with an icon drawn in code. Opens where it was last left; closing quits. Not a tray app: the owner keeps it open on an Acer, because the tray lives on the MSI's taskbar, which disappears when the MSI shows the PS5.
+- **Host window** (`Native/HostWindow.cs`): hidden Win32 window for global hotkeys, display changes and resume from sleep.
 - **Settings window:** NavigationView with General / Monitors / Hotkeys / About.
 - **First-run wizard:** shown when settings.json doesn't exist.
 - MVVM with CommunityToolkit.Mvvm.
@@ -69,10 +69,10 @@ src/
     Hotkeys/             Shortcut parsing ("Ctrl+Alt+Shift+I")
     Settings/            settings.json model and store, input list logic
   Switchboard/           WinUI 3 app
-    Native/              Hidden host window, tray icon, icon drawing
+    Native/              Hidden host window, icon drawing
     ViewModels/
     AppController.cs     Owns the services, keeps the view model in step
-    FlyoutWindow.xaml    The switch window
+    MainWindow.xaml      The app window
 tests/
   Switchboard.Core.Tests/
 docs/

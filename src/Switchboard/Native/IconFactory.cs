@@ -3,46 +3,56 @@ using System.Runtime.InteropServices;
 namespace Switchboard.Native;
 
 /// <summary>
-/// Draws the tray icon (a monitor with two arrows) at the exact pixel size the taskbar wants,
-/// with 4x4 supersampling for smooth edges. Avoids shipping .ico files in stage 2.
+/// Draws the app icon (a white monitor with two arrows on a blue rounded square) at any pixel size,
+/// with 4x4 supersampling for smooth edges. Avoids shipping .ico files until stage 3.
 /// </summary>
 internal static class IconFactory
 {
-    public static IntPtr CreateTrayIcon(int size, bool lightTaskbar)
+    // Windows blue, the same in light and dark mode, so the icon reads on any taskbar.
+    private const byte BgR = 0x00, BgG = 0x67, BgB = 0xC0;
+
+    public static IntPtr CreateAppIcon(int size)
     {
-        // White glyph on a dark taskbar, near-black on a light one.
-        byte shade = lightTaskbar ? (byte)0x1B : (byte)0xFF;
         var pixels = new uint[size * size];
         const int ss = 4;
         for (int y = 0; y < size; y++)
         {
             for (int x = 0; x < size; x++)
             {
-                int hits = 0;
+                int bg = 0, fg = 0;
                 for (int sy = 0; sy < ss; sy++)
+                {
                     for (int sx = 0; sx < ss; sx++)
-                        if (Inside((x + (sx + 0.5) / ss) / size, (y + (sy + 0.5) / ss) / size)) hits++;
-                if (hits == 0) continue;
-                uint alpha = (uint)(255 * hits / (ss * ss));
-                // Premultiplied BGRA.
-                uint c = (uint)(shade * alpha / 255);
-                pixels[y * size + x] = (alpha << 24) | (c << 16) | (c << 8) | c;
+                    {
+                        double u = (x + (sx + 0.5) / ss) / size, v = (y + (sy + 0.5) / ss) / size;
+                        if (!RoundRect(u, v, 0.02, 0.02, 0.98, 0.98, 0.22)) continue;
+                        bg++;
+                        // The glyph sits inside the square at 70% size.
+                        if (Glyph((u - 0.15) / 0.7, (v - 0.15) / 0.7)) fg++;
+                    }
+                }
+                if (bg == 0) continue;
+                const int total = ss * ss;
+                uint alpha = (uint)(255 * bg / total);
+                // Blend white glyph over the blue within the covered area, then premultiply.
+                double f = bg == 0 ? 0 : (double)fg / bg;
+                uint r = (uint)((BgR + (255 - BgR) * f) * alpha / 255);
+                uint g = (uint)((BgG + (255 - BgG) * f) * alpha / 255);
+                uint b = (uint)((BgB + (255 - BgB) * f) * alpha / 255);
+                pixels[y * size + x] = (alpha << 24) | (r << 16) | (g << 8) | b;
             }
         }
         return ToIcon(pixels, size);
     }
 
-    // Shape in unit coordinates (0..1, y down).
-    private static bool Inside(double x, double y)
+    // Monitor with two arrows, in unit coordinates (0..1, y down).
+    private static bool Glyph(double x, double y)
     {
-        // Screen: rounded outline.
         bool outer = RoundRect(x, y, 0.06, 0.12, 0.94, 0.70, 0.09);
         bool inner = RoundRect(x, y, 0.15, 0.21, 0.85, 0.61, 0.03);
         if (outer && !inner) return true;
-        // Stand and base.
         if (x is >= 0.45 and <= 0.55 && y is >= 0.70 and <= 0.82) return true;
         if (RoundRect(x, y, 0.28, 0.81, 0.72, 0.90, 0.04)) return true;
-        // Arrow to the right (upper) and to the left (lower).
         if (x is >= 0.30 and <= 0.60 && y is >= 0.315 and <= 0.375) return true;
         if (Triangle(x, y, 0.58, 0.27, 0.58, 0.42, 0.72, 0.345)) return true;
         if (x is >= 0.40 and <= 0.70 && y is >= 0.455 and <= 0.515) return true;
@@ -81,9 +91,9 @@ internal static class IconFactory
         };
         IntPtr color = Win32.CreateDIBSection(IntPtr.Zero, ref header, 0, out IntPtr bits, IntPtr.Zero, 0);
         if (color == IntPtr.Zero) return IntPtr.Zero;
-        var bytes = new int[pixels.Length];
-        Buffer.BlockCopy(pixels, 0, bytes, 0, pixels.Length * 4);
-        Marshal.Copy(bytes, 0, bits, bytes.Length);
+        var ints = new int[pixels.Length];
+        Buffer.BlockCopy(pixels, 0, ints, 0, pixels.Length * 4);
+        Marshal.Copy(ints, 0, bits, ints.Length);
 
         // All-zero mask: the alpha channel does the work. Monochrome rows are padded to 16 bits.
         var maskBits = new byte[(size + 15) / 16 * 2 * size];

@@ -16,7 +16,7 @@ public partial class App : Application
     public App()
     {
         InitializeComponent();
-        // A tray app has no main window; keep running until Quit.
+        // Keep running until Quit, even while the window is being recreated or closed.
         DispatcherShutdownMode = DispatcherShutdownMode.OnExplicitShutdown;
         UnhandledException += (_, e) =>
         {
@@ -50,7 +50,7 @@ public partial class App : Application
         var thread = new Thread(() =>
         {
             while (showEvent.WaitOne())
-                dispatcher.TryEnqueue(() => _controller?.ShowFlyout());
+                dispatcher.TryEnqueue(() => _controller?.ShowWindow());
         })
         {
             IsBackground = true,

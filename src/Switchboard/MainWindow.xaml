@@ -1,13 +1,13 @@
 <?xml version="1.0" encoding="utf-8"?>
 <Window
-    x:Class="Switchboard.FlyoutWindow"
+    x:Class="Switchboard.MainWindow"
     xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
     xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
     xmlns:local="using:Switchboard"
     xmlns:vm="using:Switchboard.ViewModels"
     Title="Switchboard">
 
-    <Grid x:Name="Root" RowDefinitions="Auto,Auto,Auto" Padding="12,8,12,12">
+    <Grid x:Name="Root" RowDefinitions="Auto,Auto,Auto" Padding="12,0,12,12">
         <Grid.Resources>
             <Style x:Key="RowButtonStyle" TargetType="Button" BasedOn="{StaticResource DefaultButtonStyle}">
                 <Setter Property="Background" Value="{ThemeResource SubtleFillColorTransparentBrush}" />
@@ -125,17 +125,25 @@
             </DataTemplate>
         </Grid.Resources>
 
-        <!-- Header: also the drag handle when the window is kept open. -->
-        <Grid
-            x:Name="Header"
-            ColumnDefinitions="Auto,*,Auto,Auto"
-            ColumnSpacing="8"
-            Background="Transparent"
-            PointerPressed="Header_PointerPressed">
-            <FontIcon Glyph="&#xE7F4;" FontSize="16" VerticalAlignment="Center" Margin="4,0,0,0" />
-            <TextBlock Grid.Column="1" Text="Switchboard" Style="{StaticResource BodyStrongTextBlockStyle}" VerticalAlignment="Center" />
+        <!-- Header doubles as the title bar: the title area drags the window, the system draws
+             minimize and close in the space reserved on the right. -->
+        <Grid x:Name="Header" Height="40" Margin="-12,0,-12,0">
+            <Grid.ColumnDefinitions>
+                <ColumnDefinition Width="*" />
+                <ColumnDefinition Width="Auto" />
+                <ColumnDefinition Width="Auto" />
+                <ColumnDefinition Width="Auto" />
+                <ColumnDefinition x:Name="CaptionSpace" Width="92" />
+            </Grid.ColumnDefinitions>
+            <Grid x:Name="TitleArea" Background="Transparent" ColumnDefinitions="Auto,*" ColumnSpacing="10" Padding="16,0,0,0">
+                <!-- Same look as the taskbar icon drawn in Native/IconFactory.cs. -->
+                <Border Width="16" Height="16" CornerRadius="4" Background="#0067C0" VerticalAlignment="Center">
+                    <FontIcon Glyph="&#xE7F4;" FontSize="10" Foreground="White" />
+                </Border>
+                <TextBlock Grid.Column="1" Text="Switchboard" Style="{StaticResource CaptionTextBlockStyle}" VerticalAlignment="Center" TextWrapping="NoWrap" TextTrimming="CharacterEllipsis" />
+            </Grid>
             <Button
-                Grid.Column="2"
+                Grid.Column="1"
                 Style="{StaticResource IconButtonStyle}"
                 Click="Refresh_Click"
                 AutomationProperties.Name="Refresh monitors"
@@ -146,12 +154,29 @@
                 </Grid>
             </Button>
             <Button
+                Grid.Column="2"
+                Style="{StaticResource IconButtonStyle}"
+                Click="AlwaysOnTop_Click"
+                AutomationProperties.Name="{x:Bind ViewModel.AlwaysOnTopTooltip, Mode=OneWay}"
+                ToolTipService.ToolTip="{x:Bind ViewModel.AlwaysOnTopTooltip, Mode=OneWay}">
+                <FontIcon Glyph="{x:Bind local:Ui.PinGlyph(ViewModel.AlwaysOnTop), Mode=OneWay}" FontSize="14" />
+            </Button>
+            <Button
                 Grid.Column="3"
                 Style="{StaticResource IconButtonStyle}"
-                Click="KeepOpen_Click"
-                AutomationProperties.Name="{x:Bind ViewModel.KeepOpenTooltip, Mode=OneWay}"
-                ToolTipService.ToolTip="{x:Bind ViewModel.KeepOpenTooltip, Mode=OneWay}">
-                <FontIcon Glyph="{x:Bind local:Ui.PinGlyph(ViewModel.KeepOpen), Mode=OneWay}" FontSize="14" />
+                AutomationProperties.Name="More options"
+                ToolTipService.ToolTip="More">
+                <FontIcon Glyph="&#xE712;" FontSize="14" />
+                <Button.Flyout>
+                    <MenuFlyout Placement="BottomEdgeAlignedRight">
+                        <MenuFlyoutItem Text="Edit settings file" Click="EditSettings_Click">
+                            <MenuFlyoutItem.Icon><FontIcon Glyph="&#xE70F;" /></MenuFlyoutItem.Icon>
+                        </MenuFlyoutItem>
+                        <MenuFlyoutItem Text="Open log" Click="OpenLog_Click">
+                            <MenuFlyoutItem.Icon><FontIcon Glyph="&#xE9F9;" /></MenuFlyoutItem.Icon>
+                        </MenuFlyoutItem>
+                    </MenuFlyout>
+                </Button.Flyout>
             </Button>
         </Grid>
 

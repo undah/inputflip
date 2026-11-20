@@ -20,13 +20,6 @@ public sealed class AppController : ISwitchboardActions, IAsyncDisposable
     private const int CycleHotkeyId = 2;
     private const int FirstInputHotkeyId = 100;
 
-    private const int MenuOpen = 1;
-    private const int MenuRefresh = 2;
-    private const int MenuKeepOpen = 3;
-    private const int MenuEditSettings = 4;
-    private const int MenuOpenLog = 5;
-    private const int MenuQuit = 9;
-
     private readonly DispatcherQueue _dispatcher;
     private readonly MonitorService _monitors = new();
     private readonly SettingsStore _store = new(AppPaths.SettingsFile);
@@ -35,8 +28,7 @@ public sealed class AppController : ISwitchboardActions, IAsyncDisposable
     private readonly DispatcherQueueTimer _settingsReloadTimer;
     private readonly DispatcherQueueTimer _statusClearTimer;
     private HostWindow? _host;
-    private TrayIcon? _tray;
-    private FlyoutWindow? _flyout;
+    private MainWindow? _window;
     private FileSystemWatcher? _watcher;
     private AppSettings _settings = new();
     private string? _settingsProblem;
@@ -51,7 +43,7 @@ public sealed class AppController : ISwitchboardActions, IAsyncDisposable
         _statusClearTimer = MakeTimer(TimeSpan.FromSeconds(8), () =>
         {
             ViewModel.Status = StandingProblem() ?? "";
-            _flyout?.FitToContent();
+            _window?.FitToContent();
         });
         _monitors.Changed += () => _dispatcher.TryEnqueue(OnMonitorsChanged);
     }
@@ -64,39 +56,30 @@ public sealed class AppController : ISwitchboardActions, IAsyncDisposable
         var loaded = _store.Load();
         _settings = loaded.Settings;
         _settingsProblem = loaded.Problem;
-        ViewModel.KeepOpen = _settings.KeepOpen;
+        ViewModel.AlwaysOnTop = _settings.AlwaysOnTop;
 
+        // Hidden helper window for global hotkeys, display changes and resume from sleep.
         _host = new HostWindow();
-        _host.TrayEvent += OnTrayEvent;
         _host.HotkeyPressed += id => { if (_hotkeyActions.TryGetValue(id, out var action)) _ = action(); };
         _host.DisplaysChanged += RestartDisplayTimer;
         _host.Resumed += RestartDisplayTimer;
 
-        _tray = new TrayIcon(_host);
-        _tray.Show();
-
-        _flyout = new FlyoutWindow(this);
+        _window = new MainWindow(this);
         RegisterHotkeys();
         WatchSettingsFile();
         ViewModel.Status = StandingProblem() ?? "Looking for monitors…";
 
         _ = RefreshAsync(enumerate: true);
-
-        // First run: show the window once so it's clear where Switchboard went. After that it lives in the tray.
-        if (_settings.KeepOpen || !loaded.FileExisted) ShowFlyout();
+        ShowWindow();
     }
 
-    public void ShowFlyout()
-    {
-        _flyout?.ShowFlyout(_settings.KeepOpen, _settings.KeepOpenPosition);
-        if (DateTime.UtcNow - _lastInputRefresh > TimeSpan.FromSeconds(2)) _ = RefreshAsync(enumerate: false);
-    }
+    /// <summary>Shows the window and brings it to the front (second launch, show shortcut).</summary>
+    public void ShowWindow() => _window?.ShowWindow(_settings.AlwaysOnTop, _settings.WindowPosition);
 
-    public void ToggleFlyout()
+    /// <summary>Re-reads current inputs when you come back to the window, in case they changed from the monitor's own buttons.</summary>
+    public void OnWindowActivated()
     {
-        if (_flyout is null) return;
-        if (_flyout.IsShown && !_settings.KeepOpen) _flyout.HideFlyout();
-        else if (!_flyout.RecentlyHidden) ShowFlyout();
+        if (DateTime.UtcNow - _lastInputRefresh > TimeSpan.FromSeconds(3)) _ = RefreshAsync(enumerate: false);
     }
 
     public async Task RefreshAsync(bool enumerate)
@@ -118,18 +101,18 @@ public sealed class AppController : ISwitchboardActions, IAsyncDisposable
         }
     }
 
-    public void SetKeepOpen(bool keepOpen)
+    public void SetAlwaysOnTop(bool alwaysOnTop)
     {
-        _settings.KeepOpen = keepOpen;
-        ViewModel.KeepOpen = keepOpen;
+        _settings.AlwaysOnTop = alwaysOnTop;
+        ViewModel.AlwaysOnTop = alwaysOnTop;
+        _window?.SetAlwaysOnTop(alwaysOnTop);
         SaveSettings();
-        if (keepOpen) ShowFlyout();
-        _flyout?.ApplyKeepOpen(keepOpen);
     }
 
-    public void SaveKeepOpenPosition(int x, int y)
+    public void SaveWindowPosition(int x, int y)
     {
-        _settings.KeepOpenPosition = new WindowPlacement { X = x, Y = y };
+        if (_settings.WindowPosition is { } p && p.X == x && p.Y == y) return;
+        _settings.WindowPosition = new WindowPlacement { X = x, Y = y };
         SaveSettings();
     }
 
@@ -213,8 +196,7 @@ public sealed class AppController : ISwitchboardActions, IAsyncDisposable
     public void Quit()
     {
         Log.Info("Switchboard quitting");
-        _flyout?.CloseForGood();
-        _tray?.Dispose();
+        _window?.CloseForGood();
         _host?.Dispose();
         _watcher?.Dispose();
         Microsoft.UI.Xaml.Application.Current.Exit();
@@ -222,7 +204,6 @@ public sealed class AppController : ISwitchboardActions, IAsyncDisposable
 
     public async ValueTask DisposeAsync()
     {
-        _tray?.Dispose();
         _host?.Dispose();
         _watcher?.Dispose();
         await _monitors.DisposeAsync();
@@ -278,9 +259,7 @@ public sealed class AppController : ISwitchboardActions, IAsyncDisposable
 
         ViewModel.HiddenCount = hiddenCount;
         ViewModel.NotifyEmptyChanged();
-        _tray!.Tooltip = BuildTooltip(snapshots);
-        _tray.Refresh();
-        _flyout?.FitToContent();
+        _window?.FitToContent();
     }
 
     private static string? MonitorMessage(MonitorSnapshot m, int inputCount) => m.Health switch
@@ -291,19 +270,6 @@ public sealed class AppController : ISwitchboardActions, IAsyncDisposable
         _ when inputCount == 0 => "This monitor didn't list any inputs.",
         _ => null,
     };
-
-    private string BuildTooltip(IReadOnlyList<MonitorSnapshot> snapshots)
-    {
-        var lines = new List<string> { "Switchboard" };
-        foreach (var m in snapshots)
-        {
-            _settings.Monitors.TryGetValue(m.Id, out var ms);
-            if (ms?.Hidden == true || m.CurrentInput is null) continue;
-            var current = InputLayout.Build(m, ms).FirstOrDefault(i => i.IsCurrent);
-            if (current is not null) lines.Add($"{(string.IsNullOrWhiteSpace(ms?.Nickname) ? m.Name : ms!.Nickname)}: {current.Name}");
-        }
-        return string.Join("\n", lines);
-    }
 
     private void RegisterHotkeys()
     {
@@ -328,7 +294,7 @@ public sealed class AppController : ISwitchboardActions, IAsyncDisposable
             _hotkeyActions[id] = action;
         }
 
-        Add(ShowHotkeyId, _settings.ShowHotkey, () => { ShowFlyout(); return Task.CompletedTask; });
+        Add(ShowHotkeyId, _settings.ShowHotkey, () => { ShowWindow(); return Task.CompletedTask; });
         Add(CycleHotkeyId, _settings.CycleHotkey, CycleAsync);
 
         int next = FirstInputHotkeyId;
@@ -364,50 +330,16 @@ public sealed class AppController : ISwitchboardActions, IAsyncDisposable
         if (next is not null) await SwitchAsync(target.Id, next.Value);
     }
 
-    private void OnTrayEvent(int evt, int x, int y)
-    {
-        switch (evt)
-        {
-            case Win32.NIN_SELECT:
-            case Win32.NIN_KEYSELECT:
-                ToggleFlyout();
-                break;
-            case Win32.WM_CONTEXTMENU:
-                ShowTrayMenu();
-                break;
-        }
-    }
-
-    private void ShowTrayMenu()
-    {
-        if (_tray is null) return;
-        int chosen = _tray.ShowMenu(
-        [
-            (MenuOpen, "Open Switchboard", true),
-            (MenuRefresh, "Refresh monitors", true),
-            (MenuKeepOpen, _settings.KeepOpen ? "Stop keeping the window open" : "Keep the window open", true),
-            (0, null, true),
-            (MenuEditSettings, "Edit settings file", true),
-            (MenuOpenLog, "Open log", File.Exists(Log.FilePath)),
-            (0, null, true),
-            (MenuQuit, "Quit", true),
-        ]);
-
-        switch (chosen)
-        {
-            case MenuOpen: ShowFlyout(); break;
-            case MenuRefresh: _ = RefreshAsync(enumerate: true); break;
-            case MenuKeepOpen: SetKeepOpen(!_settings.KeepOpen); break;
-            case MenuEditSettings: EditSettingsFile(); break;
-            case MenuOpenLog: OpenFile(Log.FilePath); break;
-            case MenuQuit: Quit(); break;
-        }
-    }
-
-    private void EditSettingsFile()
+    public void EditSettingsFile()
     {
         if (!File.Exists(_store.FilePath)) SaveSettings();
         OpenFile(_store.FilePath);
+    }
+
+    public void OpenLog()
+    {
+        if (File.Exists(Log.FilePath)) OpenFile(Log.FilePath);
+        else SetStatus("There's nothing in the log yet.");
     }
 
     private static void OpenFile(string path)
@@ -461,8 +393,8 @@ public sealed class AppController : ISwitchboardActions, IAsyncDisposable
         if (loaded.Problem is null)
         {
             _settings = loaded.Settings;
-            ViewModel.KeepOpen = _settings.KeepOpen;
-            _flyout?.ApplyKeepOpen(_settings.KeepOpen);
+            ViewModel.AlwaysOnTop = _settings.AlwaysOnTop;
+            _window?.SetAlwaysOnTop(_settings.AlwaysOnTop);
             if (SettingsStore.MergeDetected(_settings, _monitors.Monitors)) SaveSettings();
             else RegisterHotkeys();
             RebuildViewModel();
@@ -482,7 +414,7 @@ public sealed class AppController : ISwitchboardActions, IAsyncDisposable
         ViewModel.Status = text;
         _statusClearTimer.Stop();
         _statusClearTimer.Start();
-        _flyout?.FitToContent();
+        _window?.FitToContent();
     }
 
     private void RestartDisplayTimer()
