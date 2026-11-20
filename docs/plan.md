@@ -53,10 +53,17 @@ Discovery run on 2026-11-20 on the owner's PC, which has three monitors.
 
 **Re-check with repeated commands (2026-11-20):** `-DimTest` now resends the dim command every half second for 4 seconds, in case a single command hit a bad stretch. On the MSI: 7 sent, all 7 accepted by Windows, no visible change, no read-back. So over DisplayPort the MSI ignores commands entirely, not just some of the time.
 
-**Next (owner): cable swap.** Swap the monitor ends of two cables. The HDMI cable that now goes to Acer `0673` goes into the MSI's HDMI 1, and the DisplayPort cable that now goes to the MSI goes into that Acer's DisplayPort input. Monitor numbers and the Windows display layout may change, so run discovery first, then `-DimTest` on both monitors. This tests two things at once:
+**Next (owner): MSI over HDMI.** The owner says the Acer has no DisplayPort input, so swapping the MSI's DisplayPort cable onto an Acer is out. Instead:
 
-- **MSI over HDMI:** does it act on commands now? If yes, Switchboard can work with the PC on HDMI and the other device on DisplayPort.
-- **Acer over the same DisplayPort cable and GPU port:** does DisplayPort DDC/CI work on this PC at all? If the Acer works, the problem is the MSI's DisplayPort input, not the cable or the GPU.
+1. Unplug the DisplayPort cable from the MSI.
+2. Take the HDMI cable that comes straight from the graphics card to Acer `0673` (monitor 2) and plug it into the MSI's HDMI 1. That Acer has no picture during the test.
+3. Run discovery (monitor numbers may change), then `-DimTest` on the MSI.
+
+- **MSI dims over HDMI:** its DisplayPort input is the problem. Switchboard can work with the PC on HDMI and the other device on DisplayPort.
+
+This leaves open whether DisplayPort DDC/CI works on this PC at all, since no other monitor here is on DisplayPort.
+
+**To check:** Acer `0673`'s capabilities string lists `0F` (DisplayPort 1), but the owner says the Acer has no DisplayPort port. The other Acer (`06F0`) doesn't list one. Which one was checked? If `0673` really has no DisplayPort, its capabilities string lists an input it doesn't have, so the app can't trust that list on its own.
 
 If the MSI ignores commands over HDMI too, it doesn't support DDC/CI control in practice. Then the fallback is a workaround from [ddc-ci-notes.md](ddc-ci-notes.md#switch-back-problem), most likely an external HDMI switch the PC can control.
 
