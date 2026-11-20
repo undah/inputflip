@@ -18,6 +18,10 @@
     the brightness back. It shows whether the monitor acts on DDC/CI commands
     at all, separately from input switching.
 
+    Read test (-ReadTest) reads the input and brightness 20 times each and
+    reports how many reads worked. Read-only. Use it to compare settings
+    (cable, refresh rate, G-SYNC) on a monitor that answers unreliably.
+
     Talks to dxva2.dll through Add-Type, so there is nothing to build or
     install.
 
@@ -40,6 +44,9 @@
 .PARAMETER DimTest
     Run the brightness test instead of the switch test.
 
+.PARAMETER ReadTest
+    Run the read reliability test (read-only).
+
 .EXAMPLE
     powershell -ExecutionPolicy Bypass -File .\scripts\ddc-probe.ps1
 
@@ -59,6 +66,11 @@
     powershell -ExecutionPolicy Bypass -File .\scripts\ddc-probe.ps1 -Monitor 1 -DimTest
 
     Dim monitor 1 for 4 seconds, then put the brightness back.
+
+.EXAMPLE
+    powershell -ExecutionPolicy Bypass -File .\scripts\ddc-probe.ps1 -Monitor 1 -ReadTest
+
+    Read monitor 1's input and brightness 20 times each and report how many worked.
 #>
 [CmdletBinding(SupportsShouldProcess = $true)]
 param(
@@ -73,7 +85,9 @@ param(
     [ValidateRange(1, 255)]
     [int]$From,
 
-    [switch]$DimTest
+    [switch]$DimTest,
+
+    [switch]$ReadTest
 )
 
 $ErrorActionPreference = 'Stop'
@@ -947,6 +961,56 @@ function Invoke-DimTest($Monitors, $EdidMap, [int]$Pick) {
 }
 
 # ---------------------------------------------------------------------------
+# Read test: how reliably does a monitor answer? (read-only)
+# ---------------------------------------------------------------------------
+
+function Invoke-ReadTest($Monitors, $EdidMap, [int]$Pick) {
+    $m = Select-TestMonitor $Monitors $EdidMap $Pick
+    if (-not $m) { return }
+    $edid = Find-Edid $EdidMap $m.DeviceInterface
+    $via = if ($edid -and $edid.Connection) { ' over {0}' -f $edid.Connection } else { '' }
+    $reads = 20
+    Write-Host ('Read test on monitor {0}: {1}{2} (read-only, {3} reads per code)' -f $m.Index, (Get-MonitorName $m $edid $null), $via, $reads)
+
+    $totalOk = 0
+    $codes = @(
+        @{ Code = $VcpInputSource; Label = 'Input (VCP 60):     ' },
+        @{ Code = $VcpBrightness;  Label = 'Brightness (VCP 10):' }
+    )
+    foreach ($c in $codes) {
+        $ok = 0
+        $values = New-Object System.Collections.Generic.List[string]
+        $errors = @{}
+        for ($i = 0; $i -lt $reads; $i++) {
+            $r = [SwitchboardProbe.Ddc]::GetVcp($m.Handle, $c.Code, 1)
+            if ($r.Ok) {
+                $ok++
+                $v = Format-HexValue $r.Current
+                if (-not $values.Contains($v)) { $values.Add($v) }
+            } else {
+                $key = if ($r.Error -match '\((0x[0-9A-F]{8})\)$') { $Matches[1] } else { $r.Error }
+                $errors[$key] = 1 + [int]$errors[$key]
+            }
+            Start-Sleep -Milliseconds 100
+        }
+        $totalOk += $ok
+        $valueText = if ($values.Count -gt 0) { '; values: ' + ($values -join ', ') } else { '' }
+        $errorText = if ($errors.Count -gt 0) { '; errors: ' + (($errors.GetEnumerator() | ForEach-Object { '{0} x{1}' -f $_.Key, $_.Value }) -join ', ') } else { '' }
+        $color = if ($ok -eq $reads) { 'Green' } elseif ($ok -gt 0) { 'Yellow' } else { 'Red' }
+        Write-Host ('  {0} {1,2} of {2} worked{3}{4}' -f $c.Label, $ok, $reads, $valueText, $errorText) -ForegroundColor $color
+    }
+
+    $all = $reads * $codes.Count
+    if ($totalOk -eq $all) {
+        Write-Host '  Verdict: reliable' -ForegroundColor Green
+    } elseif ($totalOk -gt 0) {
+        Write-Host ('  Verdict: unreliable ({0} of {1} reads worked)' -f $totalOk, $all) -ForegroundColor Yellow
+    } else {
+        Write-Host '  Verdict: no answers' -ForegroundColor Red
+    }
+}
+
+# ---------------------------------------------------------------------------
 # Main
 # ---------------------------------------------------------------------------
 
@@ -955,6 +1019,8 @@ $monitors = @([SwitchboardProbe.Ddc]::Enumerate())
 try {
     if ($monitors.Count -eq 0) {
         Write-Host 'Windows reported no monitors.' -ForegroundColor Red
+    } elseif ($ReadTest) {
+        Invoke-ReadTest $monitors $edidMap $Monitor
     } elseif ($DimTest) {
         Invoke-DimTest $monitors $edidMap $Monitor
     } elseif ($PSBoundParameters.ContainsKey('SwitchTo')) {
