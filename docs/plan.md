@@ -29,6 +29,8 @@ Tick the boxes as work lands so any session (or Claude account) can see where th
   - with a device active on the other input
   - with nothing connected to it
   - Built into the same script: `-Monitor <n> -SwitchTo <value>` (e.g. `-Monitor 2 -SwitchTo 0x0F`). It asks whether a device is on the other input, switches, watches what the monitor reports, switches back (up to 3 tries) and prints a summary. Add `-WhatIf` for a dry run. **Needs the owner at the monitor.**
+  - Run 1 on the MSI (HDMI 1 empty): the monitor didn't switch at all. See results.
+  - Added `-DimTest` (dim for 4 s, then restore) to check whether a monitor acts on DDC/CI commands at all.
 - [ ] **Record results** in the table below. Discovery results are in; switch-test rows still open.
 
 ### Results
@@ -42,12 +44,18 @@ Discovery run on 2026-11-20 on the owner's PC, which has three monitors.
 | Inputs listed in capabilities string | Acer `0673`: `01` VGA 1, `0F` DisplayPort 1, `11` HDMI 1<br>Acer `06F0`: `01` VGA 1, `11` HDMI 1, `12` HDMI 2<br>MSI: capabilities string never came through. Manual lists DisplayPort, HDMI 1, HDMI 2; DisplayPort reads as `0F`. HDMI values probably `11` / `12` (untested). | Automatic input detection |
 | Standard or vendor-specific input values? | Acers: **standard MCCS**. Current-input reads (`11`, `12`) match the listed values. Acer `0673` and the MSI report a maximum of `03` for VCP 60, so the maximum isn't a usable range.<br>MSI: `0F` for DisplayPort is standard. | Whether input names can be detected automatically |
 | Switch-back works (other device active)? | _tbd_ (owner runs `-SwitchTo`) | Whether a workaround is needed |
-| Switch-back works (other input empty)? | _tbd_ | Same |
+| Switch-back works (other input empty)? | MSI, run 1 (2026-11-20): **the monitor didn't switch away at all.** Windows accepted the switch to `11` (HDMI 1, nothing connected) in 52 ms with no error, but the owner saw no black screen and no "No signal". 0 of 16 reads answered during the test. Either commands don't reach the MSI over DisplayPort, or it ignores a switch to an input with no signal. The brightness test (`-DimTest`) tells which. | Same |
 | Time per switch | _tbd_ for the switch itself. Reading the current input takes about 60 ms; reading the capabilities string takes 1.8 to 2.8 s. | Loading feedback in the UI |
 
 **Decision (2026-11-20):** Switchboard is for the **MSI G27CQ4** (monitor 1 in the probe).
 
-**Next (owner):** run the switch test on the MSI, e.g. `-Monitor 1 -SwitchTo 0x11 -From 0x0F` for DisplayPort to HDMI 1 and back. `-From` lets the test start even when the MSI won't report its current input. Corrupted replies don't necessarily mean commands are lost, so switching may work even though reads are unreliable. Your own eyes are the real result here, since the script's read-back is unreliable on this monitor. If the screen doesn't come back, the Navi Key's right button opens Input Source by default. If switching is unreliable too, try the MSI on HDMI instead of DisplayPort; HDMI carries DDC/CI on its own wires, not over the DisplayPort AUX channel.
+**Next (owner), on the MSI.** The script's read-back is unreliable on this monitor, so what you see on screen is the result.
+
+1. **Brightness test:** `-Monitor 1 -DimTest`. It dims the MSI for 4 seconds, then sets it back to 100. This shows whether the MSI acts on *any* DDC/CI command over DisplayPort.
+2. **If it dims**, commands get through and the problem is specific to switching inputs. Re-run the switch test with a device **turned on** at HDMI 1 (`-Monitor 1 -SwitchTo 0x11 -From 0x0F`); the MSI may refuse inputs with no signal. Also try `0x12` (HDMI 2) in case its numbering differs.
+3. **If it doesn't dim**, commands are lost over DisplayPort. Connect the MSI over HDMI instead and re-run discovery and both tests. HDMI carries DDC/CI on its own wires, not over the DisplayPort AUX channel.
+
+If the screen doesn't come back after a switch, the right side of the Navi Key opens Input Source by default.
 
 **Done when:** we know the monitor's input values and whether switch-back works. If switch-back fails, see the workarounds in [ddc-ci-notes.md](ddc-ci-notes.md#switch-back-problem).
 

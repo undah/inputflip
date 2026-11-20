@@ -14,6 +14,10 @@
     took. The screen WILL leave this PC for a few seconds. If it doesn't come
     back on its own, use the input button on the monitor.
 
+    Brightness test (-DimTest) dims one monitor for a few seconds and puts
+    the brightness back. It shows whether the monitor acts on DDC/CI commands
+    at all, separately from input switching.
+
     Talks to dxva2.dll through Add-Type, so there is nothing to build or
     install.
 
@@ -33,6 +37,9 @@
     report its current input (some monitors answer only some of the time).
     For example 0x0F for DisplayPort 1.
 
+.PARAMETER DimTest
+    Run the brightness test instead of the switch test.
+
 .EXAMPLE
     powershell -ExecutionPolicy Bypass -File .\scripts\ddc-probe.ps1
 
@@ -47,6 +54,11 @@
     .\scripts\ddc-probe.ps1 -Monitor 1 -SwitchTo 0x11 -WhatIf
 
     Walk through the switch test without sending any switch commands.
+
+.EXAMPLE
+    powershell -ExecutionPolicy Bypass -File .\scripts\ddc-probe.ps1 -Monitor 1 -DimTest
+
+    Dim monitor 1 for 4 seconds, then put the brightness back.
 #>
 [CmdletBinding(SupportsShouldProcess = $true)]
 param(
@@ -59,7 +71,9 @@ param(
     [int]$WaitSeconds = 5,
 
     [ValidateRange(1, 255)]
-    [int]$From
+    [int]$From,
+
+    [switch]$DimTest
 )
 
 $ErrorActionPreference = 'Stop'
@@ -478,6 +492,7 @@ if (-not ('SwitchboardProbe.Ddc' -as [type])) {
 # ---------------------------------------------------------------------------
 
 $VcpInputSource = [byte]0x60
+$VcpBrightness = [byte]0x10
 
 # Standard MCCS values for VCP 0x60. 0x1B is common for USB-C but not in MCCS.
 $script:InputNames = @{
@@ -586,15 +601,45 @@ function Read-Answer([string]$Question) {
     $null
 }
 
-function Send-Input($Entry, [uint32]$Value) {
-    $label = 'Monitor {0}' -f $Entry.Index
-    if (-not $script:Cmdlet.ShouldProcess($label, ('Switch input to {0}' -f (Format-Input $Value)))) {
+function Send-Vcp($Entry, [byte]$Code, [uint32]$Value, [string]$Action) {
+    if (-not $script:Cmdlet.ShouldProcess(('Monitor {0}' -f $Entry.Index), $Action)) {
         $skipped = New-Object SwitchboardProbe.VcpResult
         $skipped.Ok = $true
         $skipped.Error = 'skipped (-WhatIf)'
         return $skipped
     }
-    [SwitchboardProbe.Ddc]::SetVcp($Entry.Handle, $VcpInputSource, $Value, 1)
+    [SwitchboardProbe.Ddc]::SetVcp($Entry.Handle, $Code, $Value, 1)
+}
+
+function Send-Input($Entry, [uint32]$Value) {
+    Send-Vcp $Entry $VcpInputSource $Value ('Switch input to {0}' -f (Format-Input $Value))
+}
+
+# The monitor a test should use: the -Monitor pick, or the only one there is.
+# Returns $null (after saying why) when there isn't a usable one.
+function Select-TestMonitor($Monitors, $EdidMap, [int]$Pick) {
+    $usable = @($Monitors | Where-Object { $_.HasHandle })
+    $m = $null
+    if ($Pick -gt 0) {
+        $m = $Monitors | Where-Object { $_.Index -eq $Pick } | Select-Object -First 1
+        if (-not $m) {
+            Write-Host ("There's no monitor {0}. Run the script with no options to see the list." -f $Pick) -ForegroundColor Red
+            return $null
+        }
+    } elseif ($usable.Count -eq 1) {
+        $m = $usable[0]
+    } else {
+        Write-Host ('Found {0} monitors. Choose one with -Monitor <number>:' -f $usable.Count) -ForegroundColor Yellow
+        foreach ($u in $usable) {
+            Write-Host ('  {0}: {1}' -f $u.Index, (Get-MonitorName $u (Find-Edid $EdidMap $u.DeviceInterface) $null))
+        }
+        return $null
+    }
+    if (-not $m.HasHandle) {
+        Write-Host ("Windows couldn't open monitor {0} for DDC/CI: {1}" -f $m.Index, $m.Error) -ForegroundColor Red
+        return $null
+    }
+    $m
 }
 
 # ---------------------------------------------------------------------------
@@ -697,27 +742,8 @@ function Invoke-Discovery($Monitors, $EdidMap) {
 # ---------------------------------------------------------------------------
 
 function Invoke-SwitchTest($Monitors, $EdidMap, [int]$Pick, [uint32]$Target, [int]$Wait, [int]$Assumed) {
-    $usable = @($Monitors | Where-Object { $_.HasHandle })
-    $m = $null
-    if ($Pick -gt 0) {
-        $m = $Monitors | Where-Object { $_.Index -eq $Pick } | Select-Object -First 1
-        if (-not $m) {
-            Write-Host ("There's no monitor {0}. Run the script without -SwitchTo to see the list." -f $Pick) -ForegroundColor Red
-            return
-        }
-    } elseif ($usable.Count -eq 1) {
-        $m = $usable[0]
-    } else {
-        Write-Host ('Found {0} monitors. Choose one with -Monitor <number>:' -f $usable.Count) -ForegroundColor Yellow
-        foreach ($u in $usable) {
-            Write-Host ('  {0}: {1}' -f $u.Index, (Get-MonitorName $u (Find-Edid $EdidMap $u.DeviceInterface) $null))
-        }
-        return
-    }
-    if (-not $m.HasHandle) {
-        Write-Host ("Windows couldn't open monitor {0} for DDC/CI: {1}" -f $m.Index, $m.Error) -ForegroundColor Red
-        return
-    }
+    $m = Select-TestMonitor $Monitors $EdidMap $Pick
+    if (-not $m) { return }
 
     $name = Get-MonitorName $m (Find-Edid $EdidMap $m.DeviceInterface) $null
     # Some monitors (the owner's MSI G27CQ4) only answer some of the time, so try harder here.
@@ -800,6 +826,7 @@ function Invoke-SwitchTest($Monitors, $EdidMap, [int]$Pick, [uint32]$Target, [in
     }
 
     Write-Host ''
+    $sawSwitch = Read-Answer 'Did the screen leave this PC at any point (black, "No signal" or the other device)? [y/n]'
     $sawIt = Read-Answer 'Is this screen showing this PC again? [y/n]'
 
     # 3. Summary, in the shape of the stage 1 results table.
@@ -809,6 +836,7 @@ function Invoke-SwitchTest($Monitors, $EdidMap, [int]$Pick, [uint32]$Target, [in
     Write-Host ('  Monitor:                 {0} (monitor {1})' -f $name, $m.Index)
     Write-Host ('  Test:                    {0} -> {1} -> back' -f (Format-Input $original), (Format-Input $Target))
     Write-Host ('  Device on other input:   {0}' -f $(if ($deviceActive) { $deviceActive } else { 'not answered' }))
+    Write-Host ('  You saw it switch away:  {0}' -f $(if ($sawSwitch) { $sawSwitch } else { 'not answered' }))
     if ($null -ne $reportedAt) {
         Write-Host ('  Switch away:             command took {0} ms; monitor reported the new input after {1} ms' -f $away.Ms, $reportedAt)
     } else {
@@ -822,7 +850,9 @@ function Invoke-SwitchTest($Monitors, $EdidMap, [int]$Pick, [uint32]$Target, [in
     if ($null -ne $backOnItsOwnAt) {
         Write-Host ('  Went back on its own:    yes, after {0} ms (auto input switching?)' -f $backOnItsOwnAt)
     }
-    if ($null -ne $backConfirmedAt) {
+    if ($sawSwitch -eq 'no') {
+        Write-Host '  Switch back:             not needed; the screen never left this PC' -ForegroundColor Yellow
+    } elseif ($null -ne $backConfirmedAt) {
         Write-Host ('  Switch back:             confirmed on attempt {0}, {1} ms after the first command' -f $backAttempts, $backConfirmedAt) -ForegroundColor Green
     } else {
         Write-Host ('  Switch back:             not confirmed after {0} attempts' -f $backAttempts) -ForegroundColor Red
@@ -834,6 +864,74 @@ function Invoke-SwitchTest($Monitors, $EdidMap, [int]$Pick, [uint32]$Target, [in
 }
 
 # ---------------------------------------------------------------------------
+# Brightness test: does the monitor act on DDC/CI commands at all?
+# ---------------------------------------------------------------------------
+
+function Invoke-DimTest($Monitors, $EdidMap, [int]$Pick) {
+    $m = Select-TestMonitor $Monitors $EdidMap $Pick
+    if (-not $m) { return }
+    $name = Get-MonitorName $m (Find-Edid $EdidMap $m.DeviceInterface) $null
+
+    $before = [SwitchboardProbe.Ddc]::GetVcp($m.Handle, $VcpBrightness, 10)
+    if ($before.Ok) {
+        $restore = [uint32]$before.Current
+        $nowText = [string]$restore
+    } else {
+        $restore = [uint32]100
+        $nowText = 'unknown'
+    }
+    $test = if ($restore -ge 50) { [uint32]10 } else { [uint32]90 }
+
+    Write-Host ('Brightness test on monitor {0}: {1}' -f $m.Index, $name)
+    Write-Host ('  Brightness now:   {0}' -f $nowText)
+    Write-Host ('  Test:             {0} for 4 seconds, then back to {1}' -f $test, $restore)
+    if (-not $before.Ok) {
+        Write-Host ("  The monitor didn't report its brightness, so it goes back to 100. If that's wrong, set it in the monitor's menu afterwards.") -ForegroundColor Yellow
+    }
+    Write-Host ''
+    Write-Host 'Watch this monitor. Press Ctrl+C now to cancel.' -ForegroundColor Yellow
+    for ($i = 3; $i -ge 1; $i--) { Write-Host ('  Starting in {0}...' -f $i); Start-Sleep -Seconds 1 }
+
+    $set = Send-Vcp $m $VcpBrightness $test ('Set brightness to {0}' -f $test)
+    $readBack = $null
+    $clock = [Diagnostics.Stopwatch]::StartNew()
+    while ($clock.ElapsedMilliseconds -lt 4000) {
+        Start-Sleep -Milliseconds 500
+        $r = [SwitchboardProbe.Ddc]::GetVcp($m.Handle, $VcpBrightness, 1)
+        if ($r.Ok) { $readBack = [uint32]$r.Current }
+    }
+
+    # Send the restore 3 times: repeating the same value is harmless and covers a lost command.
+    $restoreErrors = New-Object System.Collections.Generic.List[string]
+    for ($i = 0; $i -lt 3; $i++) {
+        $s = Send-Vcp $m $VcpBrightness $restore ('Set brightness back to {0}' -f $restore)
+        if (-not $s.Ok) { $restoreErrors.Add($s.Error) }
+        Start-Sleep -Milliseconds 300
+    }
+
+    Write-Host ''
+    $sawIt = Read-Answer 'Did the screen get noticeably dimmer (or brighter) for a few seconds? [y/n]'
+    $isBack = Read-Answer 'Is the brightness back to normal now? [y/n]'
+
+    $dryRun = if ($WhatIfPreference) { ' (dry run with -WhatIf: no commands were sent)' } else { '' }
+    Write-Host ''
+    Write-Host ('Brightness test result{0}' -f $dryRun)
+    Write-Host ('  Monitor:                 {0} (monitor {1})' -f $name, $m.Index)
+    Write-Host ('  Test:                    brightness {0} -> {1} -> {2}' -f $nowText, $test, $restore)
+    if ($set.Ok) {
+        Write-Host ('  Command:                 accepted by Windows in {0} ms' -f $set.Ms)
+    } else {
+        Write-Host ('  Command:                 failed: {0}' -f $set.Error) -ForegroundColor Red
+    }
+    Write-Host ('  Read back during test:   {0}' -f $(if ($null -ne $readBack) { $readBack } else { 'no answer' }))
+    if ($restoreErrors.Count -gt 0) {
+        Write-Host ('  Restore errors:          {0}' -f ($restoreErrors -join '; '))
+    }
+    Write-Host ('  You saw it change:       {0}' -f $(if ($sawIt) { $sawIt } else { 'not answered' }))
+    Write-Host ('  Back to normal:          {0}' -f $(if ($isBack) { $isBack } else { 'not answered' }))
+}
+
+# ---------------------------------------------------------------------------
 # Main
 # ---------------------------------------------------------------------------
 
@@ -842,6 +940,8 @@ $monitors = @([SwitchboardProbe.Ddc]::Enumerate())
 try {
     if ($monitors.Count -eq 0) {
         Write-Host 'Windows reported no monitors.' -ForegroundColor Red
+    } elseif ($DimTest) {
+        Invoke-DimTest $monitors $edidMap $Monitor
     } elseif ($PSBoundParameters.ContainsKey('SwitchTo')) {
         Invoke-SwitchTest $monitors $edidMap $Monitor ([uint32]$SwitchTo) $WaitSeconds $From
     } else {
