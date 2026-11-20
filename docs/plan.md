@@ -69,6 +69,7 @@ Discovery run on 2026-11-20 on the owner's PC, which has three monitors.
 2. **G-SYNC off:** NVIDIA Control Panel, Set up G-SYNC, untick Enable. **Already off (2026-11-20):** "Enable G-SYNC, G-SYNC Compatible" was unticked, and the panel says the MSI isn't validated as G-SYNC Compatible. So the baseline above was measured with G-SYNC off, and variable refresh from the graphics card isn't the cause. Original reasoning, kept for context: The owner has FreeSync on in the MSI's menu. It was on during the HDMI tests too, which worked, but NVIDIA most likely runs variable refresh with this monitor only over DisplayPort (G-SYNC Compatible). That makes active variable refresh the main difference between the working HDMI connection and the DisplayPort one.
 3. **FreeSync off** in the MSI's on-screen menu (currently on). Stronger than step 2: the monitor stops offering variable refresh at all.
 4. **60 Hz** in Windows display settings, temporarily.
+   - **Steps 3 and 4 together (2026-11-20): 0 of 40, no help.** The MSI was confirmed at 2560x1440 60 Hz; nearly every error was `0xC0262589`. Owner to restore FreeSync and 165 Hz.
 5. **Power-cycle the MSI:** pull its power for 30 seconds.
 6. **Another DisplayPort cable** or another graphics-card DisplayPort port.
 7. **Update or roll back the NVIDIA driver** (Windows reports 32.0.16.1714).
