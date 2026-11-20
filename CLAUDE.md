@@ -26,10 +26,22 @@ Check `docs/plan.md`: ticked boxes are done, the "Results" table in stage 1 hold
 
 ## Tech decisions (so far)
 
-- C# / .NET 8, WinUI 3 (Windows App SDK), CommunityToolkit.Mvvm, H.NotifyIcon.
+- C# / **.NET 10** (LTS). Not .NET 8: its support ended on 2026-11-10. Build needs the .NET 10 SDK (`winget install Microsoft.DotNet.SDK.10`).
+- WinUI 3 on **Windows App SDK 1.8**, unpackaged and self-contained (`WindowsPackageType=None`, `WindowsAppSDKSelfContained=true`): no MSIX, no separate runtime install. 2.x exists but this code was written against 1.8; upgrade deliberately.
+- CommunityToolkit.Mvvm 8.4, used without its source generators (plain `ObservableObject.SetProperty`).
+- **Tray icon is our own Win32 code** (`src/Switchboard/Native`), not H.NotifyIcon: one hidden window handles tray clicks, hotkeys, display changes and resume, and the icon is drawn in code to match the taskbar theme.
 - DDC/CI through `dxva2.dll` P/Invoke; hotkeys through `RegisterHotKey`.
-- Settings in `%LOCALAPPDATA%\Switchboard\settings.json`.
+- Monitor identity from the EDID Windows caches in the registry (`HKLM\SYSTEM\CurrentControlSet\Enum\DISPLAY\...\Device Parameters\EDID`), not WMI.
+- Settings in `%LOCALAPPDATA%\Switchboard\settings.json`, log in `switchboard.log` next to it.
+- Default hotkeys avoid `Ctrl+Alt+letter`/digit (AltGr on many layouts): `Ctrl+Alt+Shift+I` cycles, `Ctrl+Alt+Shift+S` opens the window.
 - Stage 1 probe is a PowerShell script (`scripts/ddc-probe.ps1`) using `Add-Type` so it runs with no build step.
+
+## Code layout
+
+- `src/Switchboard.Core`: no UI. DDC/CI interop and the per-monitor queue (`Monitors/`), capabilities and EDID parsing, settings, hotkey parsing, input list logic (`Settings/InputLayout.cs`). Unit-tested.
+- `src/Switchboard`: the WinUI app. `AppController` owns the services and the view model; `FlyoutWindow` is the switch window; `Native/` is the Win32 host window, tray icon and icon drawing.
+- `tests/Switchboard.Core.Tests`: xUnit. `dotnet test` from the repo root.
+- The app project turns off the framework/runtime folders in its output path, because the XAML compiler fails on paths over 260 characters when the repo sits deep in the file system.
 
 ## Rules for the code
 
@@ -37,7 +49,9 @@ Check `docs/plan.md`: ticked boxes are done, the "Results" table in stage 1 hold
 - Identify monitors by EDID model + serial, not enumeration order.
 - Don't hard-code input values as the truth: read the capabilities string, fall back to the MCCS table, allow manual values.
 - User-facing text: sentence case, plain language, errors say what happened and what to do. No raw exception text in the UI.
-- Release physical monitor handles (`DestroyPhysicalMonitors`).
+- Release physical monitor handles (`DestroyPhysicalMonitor`). A handle can be `0`; track "has a handle" separately.
+- Never report a switch as done from the `SetVCPFeature` result alone; confirm with a read-back, otherwise say it's unconfirmed.
+- Don't test by clicking inputs or pressing switch hotkeys unless the owner is at the PC: it really switches their monitors.
 
 ## Environment
 

@@ -1,0 +1,192 @@
+<?xml version="1.0" encoding="utf-8"?>
+<Window
+    x:Class="Switchboard.FlyoutWindow"
+    xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+    xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+    xmlns:local="using:Switchboard"
+    xmlns:vm="using:Switchboard.ViewModels"
+    Title="Switchboard">
+
+    <Grid x:Name="Root" RowDefinitions="Auto,Auto,Auto" Padding="12,8,12,12">
+        <Grid.Resources>
+            <Style x:Key="RowButtonStyle" TargetType="Button" BasedOn="{StaticResource DefaultButtonStyle}">
+                <Setter Property="Background" Value="{ThemeResource SubtleFillColorTransparentBrush}" />
+                <Setter Property="BorderThickness" Value="0" />
+                <Setter Property="Padding" Value="0" />
+                <Setter Property="HorizontalAlignment" Value="Stretch" />
+                <Setter Property="HorizontalContentAlignment" Value="Stretch" />
+                <Setter Property="CornerRadius" Value="6" />
+            </Style>
+            <Style x:Key="IconButtonStyle" TargetType="Button" BasedOn="{StaticResource DefaultButtonStyle}">
+                <Setter Property="Background" Value="{ThemeResource SubtleFillColorTransparentBrush}" />
+                <Setter Property="BorderThickness" Value="0" />
+                <Setter Property="Padding" Value="8" />
+                <Setter Property="Width" Value="36" />
+                <Setter Property="Height" Value="32" />
+            </Style>
+
+            <DataTemplate x:Key="InputTemplate" x:DataType="vm:InputViewModel">
+                <Grid Margin="0,2" Opacity="{x:Bind local:Ui.HiddenOpacity(IsHidden), Mode=OneWay}">
+                    <Button
+                        Style="{StaticResource RowButtonStyle}"
+                        Command="{x:Bind SwitchCommand}"
+                        Visibility="{x:Bind local:Ui.Collapsed(IsRenaming), Mode=OneWay}"
+                        AutomationProperties.Name="{x:Bind AccessibleName, Mode=OneWay}"
+                        ToolTipService.ToolTip="{x:Bind PortName, Mode=OneWay}">
+                        <Button.ContextFlyout>
+                            <MenuFlyout>
+                                <MenuFlyoutItem Text="Rename" Command="{x:Bind RenameCommand}">
+                                    <MenuFlyoutItem.Icon><FontIcon Glyph="&#xE8AC;" /></MenuFlyoutItem.Icon>
+                                </MenuFlyoutItem>
+                                <MenuFlyoutSubItem Text="Icon">
+                                    <MenuFlyoutSubItem.Icon><FontIcon Glyph="&#xE790;" /></MenuFlyoutSubItem.Icon>
+                                    <MenuFlyoutItem Text="PC" Command="{x:Bind SetIconCommand}" CommandParameter="pc" />
+                                    <MenuFlyoutItem Text="Laptop" Command="{x:Bind SetIconCommand}" CommandParameter="laptop" />
+                                    <MenuFlyoutItem Text="Console" Command="{x:Bind SetIconCommand}" CommandParameter="console" />
+                                    <MenuFlyoutItem Text="TV or media player" Command="{x:Bind SetIconCommand}" CommandParameter="tv" />
+                                    <MenuFlyoutItem Text="Plain monitor" Command="{x:Bind SetIconCommand}" CommandParameter="display" />
+                                </MenuFlyoutSubItem>
+                                <MenuFlyoutSeparator />
+                                <MenuFlyoutItem Text="{x:Bind HideMenuText, Mode=OneWay}" Command="{x:Bind HideCommand}">
+                                    <MenuFlyoutItem.Icon><FontIcon Glyph="&#xED1A;" /></MenuFlyoutItem.Icon>
+                                </MenuFlyoutItem>
+                            </MenuFlyout>
+                        </Button.ContextFlyout>
+
+                        <Border Background="{x:Bind local:Ui.RowBackground(IsCurrent), Mode=OneWay}" CornerRadius="6" Padding="10,8" MinHeight="44">
+                            <Grid ColumnDefinitions="Auto,*,Auto" ColumnSpacing="12">
+                                <FontIcon
+                                    FontSize="18"
+                                    Glyph="{x:Bind local:Ui.IconGlyph(Icon), Mode=OneWay}"
+                                    Foreground="{x:Bind local:Ui.RowForeground(IsCurrent), Mode=OneWay}" />
+                                <StackPanel Grid.Column="1" VerticalAlignment="Center">
+                                    <TextBlock
+                                        Text="{x:Bind Name, Mode=OneWay}"
+                                        TextTrimming="CharacterEllipsis"
+                                        Foreground="{x:Bind local:Ui.RowForeground(IsCurrent), Mode=OneWay}" />
+                                    <TextBlock
+                                        Text="{x:Bind Subtitle, Mode=OneWay}"
+                                        Visibility="{x:Bind local:Ui.Visible(HasSubtitle), Mode=OneWay}"
+                                        Style="{StaticResource CaptionTextBlockStyle}"
+                                        Foreground="{x:Bind local:Ui.RowSecondaryForeground(IsCurrent), Mode=OneWay}" />
+                                </StackPanel>
+                                <Grid Grid.Column="2" VerticalAlignment="Center">
+                                    <ProgressRing
+                                        Width="16"
+                                        Height="16"
+                                        IsActive="{x:Bind IsBusy, Mode=OneWay}"
+                                        Visibility="{x:Bind local:Ui.Visible(IsBusy), Mode=OneWay}"
+                                        Foreground="{x:Bind local:Ui.RowForeground(IsCurrent), Mode=OneWay}" />
+                                    <TextBlock
+                                        Text="{x:Bind HotkeyText, Mode=OneWay}"
+                                        Style="{StaticResource CaptionTextBlockStyle}"
+                                        FontFamily="Cascadia Mono, Consolas"
+                                        Visibility="{x:Bind local:Ui.Collapsed(IsBusy), Mode=OneWay}"
+                                        Foreground="{x:Bind local:Ui.RowSecondaryForeground(IsCurrent), Mode=OneWay}" />
+                                </Grid>
+                            </Grid>
+                        </Border>
+                    </Button>
+
+                    <TextBox
+                        x:Name="RenameBox"
+                        x:Load="{x:Bind IsRenaming, Mode=OneWay}"
+                        Text="{x:Bind Name, Mode=OneWay}"
+                        PlaceholderText="{x:Bind PortName, Mode=OneWay}"
+                        AutomationProperties.Name="Input name"
+                        Loaded="RenameBox_Loaded"
+                        KeyDown="RenameBox_KeyDown"
+                        LostFocus="RenameBox_LostFocus" />
+                </Grid>
+            </DataTemplate>
+
+            <DataTemplate x:Key="MonitorTemplate" x:DataType="vm:MonitorViewModel">
+                <StackPanel Margin="0,8,0,0" Opacity="{x:Bind local:Ui.HiddenOpacity(IsHidden), Mode=OneWay}">
+                    <TextBlock
+                        Text="{x:Bind Name, Mode=OneWay}"
+                        Style="{StaticResource CaptionTextBlockStyle}"
+                        Foreground="{ThemeResource TextFillColorSecondaryBrush}"
+                        Margin="4,0,0,4">
+                        <TextBlock.ContextFlyout>
+                            <MenuFlyout>
+                                <MenuFlyoutItem Text="{x:Bind HideMenuText, Mode=OneWay}" Command="{x:Bind HideCommand}" />
+                            </MenuFlyout>
+                        </TextBlock.ContextFlyout>
+                    </TextBlock>
+                    <TextBlock
+                        Text="{x:Bind Message, Mode=OneWay}"
+                        Visibility="{x:Bind local:Ui.Visible(HasMessage), Mode=OneWay}"
+                        Style="{StaticResource CaptionTextBlockStyle}"
+                        Foreground="{ThemeResource TextFillColorTertiaryBrush}"
+                        TextWrapping="Wrap"
+                        Margin="4,0,4,4" />
+                    <ItemsControl ItemsSource="{x:Bind Inputs}" ItemTemplate="{StaticResource InputTemplate}" IsTabStop="False" />
+                </StackPanel>
+            </DataTemplate>
+        </Grid.Resources>
+
+        <!-- Header: also the drag handle when the window is kept open. -->
+        <Grid
+            x:Name="Header"
+            ColumnDefinitions="Auto,*,Auto,Auto"
+            ColumnSpacing="8"
+            Background="Transparent"
+            PointerPressed="Header_PointerPressed">
+            <FontIcon Glyph="&#xE7F4;" FontSize="16" VerticalAlignment="Center" Margin="4,0,0,0" />
+            <TextBlock Grid.Column="1" Text="Switchboard" Style="{StaticResource BodyStrongTextBlockStyle}" VerticalAlignment="Center" />
+            <Button
+                Grid.Column="2"
+                Style="{StaticResource IconButtonStyle}"
+                Click="Refresh_Click"
+                AutomationProperties.Name="Refresh monitors"
+                ToolTipService.ToolTip="Refresh monitors">
+                <Grid>
+                    <FontIcon Glyph="&#xE72C;" FontSize="14" Visibility="{x:Bind local:Ui.Collapsed(ViewModel.IsRefreshing), Mode=OneWay}" />
+                    <ProgressRing Width="14" Height="14" IsActive="{x:Bind ViewModel.IsRefreshing, Mode=OneWay}" />
+                </Grid>
+            </Button>
+            <Button
+                Grid.Column="3"
+                Style="{StaticResource IconButtonStyle}"
+                Click="KeepOpen_Click"
+                AutomationProperties.Name="{x:Bind ViewModel.KeepOpenTooltip, Mode=OneWay}"
+                ToolTipService.ToolTip="{x:Bind ViewModel.KeepOpenTooltip, Mode=OneWay}">
+                <FontIcon Glyph="{x:Bind local:Ui.PinGlyph(ViewModel.KeepOpen), Mode=OneWay}" FontSize="14" />
+            </Button>
+        </Grid>
+
+        <StackPanel Grid.Row="1">
+            <TextBlock
+                Text="No monitors found yet."
+                Visibility="{x:Bind local:Ui.Visible(ViewModel.IsEmpty), Mode=OneWay}"
+                Style="{StaticResource CaptionTextBlockStyle}"
+                Foreground="{ThemeResource TextFillColorSecondaryBrush}"
+                Margin="4,12,4,4" />
+            <ItemsControl ItemsSource="{x:Bind ViewModel.Monitors}" ItemTemplate="{StaticResource MonitorTemplate}" IsTabStop="False" />
+        </StackPanel>
+
+        <Grid
+            Grid.Row="2"
+            Visibility="{x:Bind local:Ui.Visible(ViewModel.HasFooter), Mode=OneWay}"
+            ColumnDefinitions="*,Auto"
+            ColumnSpacing="8"
+            Margin="4,10,0,0"
+            Padding="0,8,0,0"
+            BorderThickness="0,1,0,0"
+            BorderBrush="{ThemeResource DividerStrokeColorDefaultBrush}">
+            <TextBlock
+                Text="{x:Bind ViewModel.Status, Mode=OneWay}"
+                Style="{StaticResource CaptionTextBlockStyle}"
+                Foreground="{ThemeResource TextFillColorSecondaryBrush}"
+                TextWrapping="Wrap"
+                VerticalAlignment="Center" />
+            <HyperlinkButton
+                Grid.Column="1"
+                Content="{x:Bind ViewModel.HiddenToggleText, Mode=OneWay}"
+                Visibility="{x:Bind local:Ui.Visible(ViewModel.HasHiddenToggle), Mode=OneWay}"
+                Click="ShowHidden_Click"
+                FontSize="12"
+                Padding="6,2" />
+        </Grid>
+    </Grid>
+</Window>
