@@ -51,6 +51,18 @@ Python alternative for quick tests: the `monitorcontrol` package. Command-line a
 - **The capabilities string can list inputs the monitor doesn't have.** The owner's Acer VG240Y (EDID `ACR 0673`) lists `60(01 0F 11)`, including DisplayPort, but it has no DisplayPort port. The MSI G27CQ4 lists `10` (DisplayPort 2) but has one DisplayPort port. They probably report for the whole model family. Treat detected inputs as suggestions the user can hide or rename, not a list of real ports.
 - **A successful `SetVCPFeature` call doesn't mean the monitor did anything.** On the owner's MSI over DisplayPort, Windows reported success in about 50 ms for both an input switch and a brightness change, and neither had any visible effect. The app can't show "switched" based on the call alone: confirm with a read-back where the monitor supports it, and otherwise show the result as unconfirmed.
 
+## DisplayPort
+
+DDC/CI over DisplayPort is often less reliable than over HDMI. "Works on HDMI, not on DisplayPort" is a common report, and the cause varies:
+
+- Some vendors only implement DDC/CI on HDMI inputs ([ddcutil wiki](https://github.com/rockowitz/ddcutil/wiki/Samsung)).
+- GPU drivers matter. On DisplayPort, DDC/CI goes through the driver's I2C-over-AUX path, and NVIDIA driver versions have broken DDC/CI for some monitors ([NVIDIA forum](https://forums.developer.nvidia.com/t/gddccontrol-issues-with-nvidia-drivers-i2c-monitor-display-ddc-dp-hdmi-failing/30427?page=4)).
+- Docks, MST hubs, KVMs and adapters can block it.
+
+The owner's MSI G27CQ4 is a partial case: on DisplayPort some reads work with correct values, but commands have no effect. It works fully on HDMI. The experiments to try are in [plan.md](plan.md), stage 1.
+
+**Alternate route on NVIDIA:** NVAPI's I2C functions (`NvAPI_I2CWrite` / `NvAPI_I2CRead`, [NVAPI docs](https://docs.nvidia.com/nvapi/group__i2capi.html)) talk to the monitor without the Windows DDC/CI API. [monitorinputwizzard](https://github.com/lunat1q/monitorinputwizzard) uses `NvAPI_I2CWrite` to device `0x6E` to switch inputs on monitors that ignore the standard path. It's NVIDIA-only and untested here. No license is stated in the repo, so read it for ideas only; don't copy its code.
+
 ## Switch-back problem
 
 Some monitors stop listening to DDC/CI on an input once it's no longer the one on screen. The PC can switch the monitor *away* but not *back*.

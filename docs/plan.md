@@ -61,7 +61,20 @@ Discovery run on 2026-11-20 on the owner's PC, which has three monitors.
 - PC to MSI HDMI 1 (`11`), PS5 to MSI HDMI 2 (`12`). Switchboard switches between `11` and `12`.
 - Cost: on HDMI the MSI advertises 2560x1440 at up to **144 Hz**, against 165 Hz on DisplayPort (from the EDID modes Windows lists for its HDMI input).
 - Not recommended: the DisplayPort-to-HDMI cable on the MSI itself. 1440p at 144 Hz needs an HDMI 2.0-class adapter, and active adapters don't always pass DDC/CI through.
-- Without buying anything: keep the MSI on DisplayPort and switch with the Navi Key's Input Source button. Switchboard can't control the MSI over DisplayPort.
+- Without buying anything: keep the MSI on DisplayPort and switch with the Navi Key's Input Source button. With the current settings, Switchboard can't control the MSI over DisplayPort.
+
+**Keeping DisplayPort (owner's preference, 2026-11-20): not ruled out.** The MSI answered some reads correctly over DisplayPort, so it implements DDC/CI there; something makes it unreliable. Research: "works on HDMI, not on DisplayPort" is common, and the cause varies (monitor, driver, settings); see [ddc-ci-notes.md](ddc-ci-notes.md#displayport). Experiments, cheapest first. Measure each with `-ReadTest` on the MSI (40 of 40 over HDMI). If reads become reliable, confirm with `-DimTest`.
+
+1. **Baseline:** cables back to the normal setup (MSI on DisplayPort), run `-ReadTest`.
+2. **G-SYNC off:** NVIDIA Control Panel, Set up G-SYNC, untick Enable. A theory, not a confirmed fix: variable refresh normally runs only on the DisplayPort connection here, which makes it the main difference from the working HDMI one.
+3. **FreeSync off** in the MSI's on-screen menu.
+4. **60 Hz** in Windows display settings, temporarily.
+5. **Power-cycle the MSI:** pull its power for 30 seconds.
+6. **Another DisplayPort cable** or another graphics-card DisplayPort port.
+7. **Update or roll back the NVIDIA driver** (Windows reports 32.0.16.1714).
+8. **NVIDIA's own I2C interface** (NVAPI) instead of the Windows DDC/CI API. A bigger step: needs a new probe, and it's NVIDIA-only.
+
+If none of these work, use the HDMI cabling plan above.
 
 **Checked (2026-11-20):** neither Acer has a DisplayPort port, so Acer `0673`'s capabilities string lists an input (`0F`) that doesn't exist. The MSI does the same with `10` (DisplayPort 2). See [ddc-ci-notes.md](ddc-ci-notes.md#known-problems).
 
