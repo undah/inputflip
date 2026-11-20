@@ -19,7 +19,7 @@ Tick the boxes as work lands so any session (or Claude account) can see where th
 ### Steps
 
 - [ ] **Prep (owner):** turn on DDC/CI in the monitor's on-screen menu. Connect a second device to another input if possible.
-  - Both Acers already answer. The MSI G27CQ4 doesn't yet (see results): check its menu for a DDC/CI option, then re-run discovery.
+  - Both Acers already answer. The MSI G27CQ4 has no DDC/CI option in its menu (firmware FW.013; the manual's Setting menu confirms none) and answers only some of the time (see results).
 - [x] **Discovery script:** PowerShell script (`scripts/ddc-probe.ps1`) that calls `dxva2.dll` through `Add-Type` P/Invoke and, for each monitor:
   - prints the model name
   - reads the **capabilities string** (`CapabilitiesRequestAndCapabilitiesReply`) and parses the `60(...)` list of supported inputs
@@ -37,15 +37,17 @@ Discovery run on 2026-11-20 on the owner's PC, which has three monitors.
 
 | Check | Result | Why it matters |
 |---|---|---|
-| Monitor model | 1: **MSI G27CQ4** (primary, EDID `MSI 3CB0`)<br>2: **Acer VG240Y** (EDID `ACR 0673`)<br>3: **Acer VG240Y** (EDID `ACR 06F0`; capabilities string only says `model(acer)`) | |
-| Responds to DDC/CI at all? | Acers: **yes**.<br>MSI: **no**. 48 of 48 reads failed (input, brightness, contrast, power), all with `0xC0262589` (invalid command field); the capabilities request fails with `0xC026258B` (bad checksum). Likely DDC/CI is off in its menu, or the cable or adapter doesn't pass it through. | Go/no-go for the whole project |
-| Inputs listed in capabilities string | Acer `0673`: `01` VGA 1, `0F` DisplayPort 1, `11` HDMI 1<br>Acer `06F0`: `01` VGA 1, `11` HDMI 1, `12` HDMI 2<br>MSI: unknown | Automatic input detection |
-| Standard or vendor-specific input values? | Acers: **standard MCCS**. Current-input reads (`11`, `12`) match the listed values. Acer `0673` reports a maximum of `03` for VCP 60, so the maximum isn't a usable range. | Whether input names can be detected automatically |
+| Monitor model | 1: **MSI G27CQ4** (primary, EDID `MSI 3CB0`, firmware FW.013, over DisplayPort from an RTX 4070)<br>2: **Acer VG240Y** (EDID `ACR 0673`, over HDMI)<br>3: **Acer VG240Y** (EDID `ACR 06F0`, Windows reports DVI; capabilities string only says `model(acer)`) | |
+| Responds to DDC/CI at all? | Acers: **yes**, every time.<br>MSI: **only some of the time.** It has stretches where every read works (8 of 8) and stretches where none do (0 of 48, input, brightness, contrast and power alike), with `0xC0262589` (invalid command field) or `0xC026258B` (bad checksum). Longer pauses between commands didn't help. Good reads return correct values (input `0F`, brightness `64` = 100). No DDC/CI option in its menu and no USB port. | Go/no-go for the whole project |
+| Inputs listed in capabilities string | Acer `0673`: `01` VGA 1, `0F` DisplayPort 1, `11` HDMI 1<br>Acer `06F0`: `01` VGA 1, `11` HDMI 1, `12` HDMI 2<br>MSI: capabilities string never came through. Manual lists DisplayPort, HDMI 1, HDMI 2; DisplayPort reads as `0F`. HDMI values probably `11` / `12` (untested). | Automatic input detection |
+| Standard or vendor-specific input values? | Acers: **standard MCCS**. Current-input reads (`11`, `12`) match the listed values. Acer `0673` and the MSI report a maximum of `03` for VCP 60, so the maximum isn't a usable range.<br>MSI: `0F` for DisplayPort is standard. | Whether input names can be detected automatically |
 | Switch-back works (other device active)? | _tbd_ (owner runs `-SwitchTo`) | Whether a workaround is needed |
 | Switch-back works (other input empty)? | _tbd_ | Same |
 | Time per switch | _tbd_ for the switch itself. Reading the current input takes about 60 ms; reading the capabilities string takes 1.8 to 2.8 s. | Loading feedback in the UI |
 
-**Open question for the owner:** which monitor(s) should Switchboard switch, and what's on their other inputs? If it's the MSI, it has to answer DDC/CI first.
+**Decision (2026-11-20):** Switchboard is for the **MSI G27CQ4** (monitor 1 in the probe).
+
+**Next (owner):** run the switch test on the MSI, e.g. `-Monitor 1 -SwitchTo 0x11 -From 0x0F` for DisplayPort to HDMI 1 and back. `-From` lets the test start even when the MSI won't report its current input. Corrupted replies don't necessarily mean commands are lost, so switching may work even though reads are unreliable. Your own eyes are the real result here, since the script's read-back is unreliable on this monitor. If the screen doesn't come back, the Navi Key's right button opens Input Source by default. If switching is unreliable too, try the MSI on HDMI instead of DisplayPort; HDMI carries DDC/CI on its own wires, not over the DisplayPort AUX channel.
 
 **Done when:** we know the monitor's input values and whether switch-back works. If switch-back fails, see the workarounds in [ddc-ci-notes.md](ddc-ci-notes.md#switch-back-problem).
 

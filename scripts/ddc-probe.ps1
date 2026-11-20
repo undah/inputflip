@@ -28,6 +28,11 @@
 .PARAMETER WaitSeconds
     How long to stay on the other input before switching back. Default 5.
 
+.PARAMETER From
+    The input this PC is on, used to switch back when the monitor won't
+    report its current input (some monitors answer only some of the time).
+    For example 0x0F for DisplayPort 1.
+
 .EXAMPLE
     powershell -ExecutionPolicy Bypass -File .\scripts\ddc-probe.ps1
 
@@ -51,7 +56,10 @@ param(
     [int]$SwitchTo,
 
     [ValidateRange(1, 60)]
-    [int]$WaitSeconds = 5
+    [int]$WaitSeconds = 5,
+
+    [ValidateRange(1, 255)]
+    [int]$From
 )
 
 $ErrorActionPreference = 'Stop'
@@ -521,10 +529,28 @@ function Get-EdidMap {
                 Product      = Convert-EdidString $m.ProductCodeID
                 Name         = Convert-EdidString $m.UserFriendlyName
                 Serial       = Convert-EdidString $m.SerialNumberID
+                Connection   = $null
             }
         }
     } catch {
         # WMI isn't essential for the probe; fall back to the capabilities model name.
+    }
+    try {
+        # DDC/CI runs over different wiring per cable type, so it helps to know which one is in use.
+        foreach ($c in Get-CimInstance -Namespace root\wmi -ClassName WmiMonitorConnectionParams -ErrorAction Stop) {
+            $entry = $map[$c.InstanceName.ToUpperInvariant()]
+            if (-not $entry) { continue }
+            $entry.Connection = switch ([int64]$c.VideoOutputTechnology) {
+                0          { 'VGA' }
+                4          { 'DVI' }
+                5          { 'HDMI' }
+                10         { 'DisplayPort' }
+                11         { 'DisplayPort (embedded)' }
+                2147483648 { 'built-in panel' }
+                default    { 'type {0}' -f $_ }
+            }
+        }
+    } catch {
     }
     $map
 }
@@ -598,6 +624,7 @@ function Invoke-Discovery($Monitors, $EdidMap) {
             Write-Host ('  EDID:           maker {0}, product {1}, serial {2}' -f $edid.Manufacturer, $edid.Product, $(if ($edid.Serial) { $edid.Serial } else { '(none)' }))
         }
         Write-Host ('  Windows:        {0} on {1}' -f $m.Description, $m.GdiDevice)
+        if ($edid -and $edid.Connection) { Write-Host ('  Connected via:  {0}' -f $edid.Connection) }
 
         # Capabilities string and the inputs it lists
         $listed = @()
@@ -669,7 +696,7 @@ function Invoke-Discovery($Monitors, $EdidMap) {
 # Switch test
 # ---------------------------------------------------------------------------
 
-function Invoke-SwitchTest($Monitors, $EdidMap, [int]$Pick, [uint32]$Target, [int]$Wait) {
+function Invoke-SwitchTest($Monitors, $EdidMap, [int]$Pick, [uint32]$Target, [int]$Wait, [int]$Assumed) {
     $usable = @($Monitors | Where-Object { $_.HasHandle })
     $m = $null
     if ($Pick -gt 0) {
@@ -693,13 +720,21 @@ function Invoke-SwitchTest($Monitors, $EdidMap, [int]$Pick, [uint32]$Target, [in
     }
 
     $name = Get-MonitorName $m (Find-Edid $EdidMap $m.DeviceInterface) $null
-    $before = [SwitchboardProbe.Ddc]::GetVcp($m.Handle, $VcpInputSource, 3)
-    if (-not $before.Ok) {
-        Write-Host ("Couldn't read the current input of monitor {0}: {1}" -f $m.Index, $before.Error) -ForegroundColor Red
-        Write-Host "Without it the script can't switch back, so the test didn't run. Check that DDC/CI is on in the monitor's menu."
+    # Some monitors (the owner's MSI G27CQ4) only answer some of the time, so try harder here.
+    $before = [SwitchboardProbe.Ddc]::GetVcp($m.Handle, $VcpInputSource, 10)
+    if ($before.Ok) {
+        $original = [uint32]($before.Current -band 0xFF)
+        if ($Assumed -gt 0 -and $Assumed -ne $original) {
+            Write-Host ('The monitor says it is on {0}, not {1}; using what it says.' -f (Format-Input $original), (Format-Input $Assumed)) -ForegroundColor Yellow
+        }
+    } elseif ($Assumed -gt 0) {
+        $original = [uint32]$Assumed
+        Write-Host ("Couldn't read the current input of monitor {0} after {1} tries, so using -From {2}." -f $m.Index, $before.Attempts, (Format-Input $original)) -ForegroundColor Yellow
+    } else {
+        Write-Host ("Couldn't read the current input of monitor {0} after {1} tries: {2}" -f $m.Index, $before.Attempts, $before.Error) -ForegroundColor Red
+        Write-Host "Without it the script can't switch back, so the test didn't run. Run it again, or say which input this PC is on with -From (for example -From 0x0F for DisplayPort 1)."
         return
     }
-    $original = [uint32]($before.Current -band 0xFF)
     if ($original -eq $Target) {
         Write-Host ('Monitor {0} is already on {1}. Pick a different input.' -f $m.Index, (Format-Input $Target)) -ForegroundColor Yellow
         return
@@ -808,7 +843,7 @@ try {
     if ($monitors.Count -eq 0) {
         Write-Host 'Windows reported no monitors.' -ForegroundColor Red
     } elseif ($PSBoundParameters.ContainsKey('SwitchTo')) {
-        Invoke-SwitchTest $monitors $edidMap $Monitor ([uint32]$SwitchTo) $WaitSeconds
+        Invoke-SwitchTest $monitors $edidMap $Monitor ([uint32]$SwitchTo) $WaitSeconds $From
     } else {
         Invoke-Discovery $monitors $edidMap
     }

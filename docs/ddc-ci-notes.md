@@ -44,7 +44,10 @@ Python alternative for quick tests: the `monitorcontrol` package. Command-line a
 - TVs generally don't support DDC/CI. Some support HDMI-CEC, but most PC GPUs can't send CEC.
 - Reading the capabilities string is slow: 1.8 to 2.8 s on the owner's Acers, against about 60 ms for a single VCP read. Read it once in the background and cache it per monitor.
 - **Physical monitor handles can be `0`.** The owner's primary monitor gets handle `0` from `GetPhysicalMonitorsFromHMONITOR`. Don't use `IntPtr.Zero` to mean "no handle"; track that separately. The first version of the probe got this wrong.
-- A monitor that answers *every* call with `0xC0262589` (invalid command field) or `0xC026258B` (bad checksum) isn't talking DDC/CI at all; retrying doesn't help. Seen on the owner's MSI G27CQ4 (0 of 48 reads worked). Show the "turn on DDC/CI" message instead of retrying forever.
+- **Some monitors answer only some of the time.** The owner's MSI G27CQ4 on DisplayPort (no DDC/CI option in its menu) goes through stretches where every read works (8 of 8) and stretches where none do (0 of 48), failing with `0xC0262589` (invalid command field) or `0xC026258B` (bad checksum). Pausing longer between commands didn't help. Successful reads return correct values. Its capabilities string has never come through. So the app must:
+  - retry reads with backoff and treat a failed read as "unknown", not "wrong";
+  - work without the capabilities string (MCCS table plus manual values);
+  - not assume a switch failed just because the read-back failed. Corrupted *replies* don't mean the *command* didn't arrive.
 
 ## Switch-back problem
 
