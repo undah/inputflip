@@ -55,7 +55,7 @@ Python alternative for quick tests: the `monitorcontrol` package. Command-line a
 
 Some monitors stop listening to DDC/CI on an input once it's no longer the one on screen. The PC can switch the monitor *away* but not *back*.
 
-**Test first:** many monitors still accept commands on an inactive input. If yours does, there's nothing to fix.
+**Test first:** many monitors still accept commands on an inactive input. If yours does, there's nothing to fix. The owner's MSI G27CQ4 does, over HDMI: it answered 16 of 16 reads while showing another input and switched back on the first command. Tested with the other input empty; the test with a device active on it is still to do.
 
 Workarounds, easiest first:
 

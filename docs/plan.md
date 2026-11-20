@@ -29,7 +29,8 @@ Tick the boxes as work lands so any session (or Claude account) can see where th
   - with a device active on the other input
   - with nothing connected to it
   - Built into the same script: `-Monitor <n> -SwitchTo <value>` (e.g. `-Monitor 2 -SwitchTo 0x0F`). It asks whether a device is on the other input, switches, watches what the monitor reports, switches back (up to 3 tries) and prints a summary. Add `-WhatIf` for a dry run. **Needs the owner at the monitor.**
-  - Run 1 on the MSI (HDMI 1 empty): the monitor didn't switch at all. See results.
+  - Run 1 on the MSI over DisplayPort (HDMI 1 empty): the monitor didn't switch at all. See results.
+  - Run 2 on the MSI over HDMI (DisplayPort empty): **switched away and back.** The "other input empty" case is done; "device active" is still open.
   - Added `-DimTest` (dim for 4 s, then restore) to check whether a monitor acts on DDC/CI commands at all. On the MSI over DisplayPort: no change. Over HDMI: it dimmed, and the read-back gave `10`.
 - [ ] **Record results** in the table below. Discovery results are in; switch-test rows still open.
 
@@ -44,8 +45,8 @@ Discovery run on 2026-11-20 on the owner's PC, which has three monitors.
 | Inputs listed in capabilities string | Acer `0673`: `01` VGA 1, `0F` DisplayPort 1, `11` HDMI 1. The monitor has no DisplayPort port, so `0F` is listed but doesn't exist.<br>Acer `06F0`: `01` VGA 1, `11` HDMI 1, `12` HDMI 2<br>MSI (read over HDMI; `model(FALCON)`, MCCS 2.0): `11` HDMI 1, `12` HDMI 2, `0F` DisplayPort 1, `10` DisplayPort 2. Its manual shows one DisplayPort port, so `10` doesn't exist. Over DisplayPort the string never came through. | Automatic input detection |
 | Standard or vendor-specific input values? | Acers: **standard MCCS**. Current-input reads (`11`, `12`) match the listed values. Acer `0673` and the MSI report a maximum of `03` for VCP 60, so the maximum isn't a usable range.<br>MSI: **standard MCCS**. The current input reads `11` over HDMI 1 and `0F` over DisplayPort. | Whether input names can be detected automatically |
 | Switch-back works (other device active)? | _tbd_ (owner runs `-SwitchTo`) | Whether a workaround is needed |
-| Switch-back works (other input empty)? | MSI, run 1 (2026-11-20): **the monitor didn't switch away at all.** Windows accepted the switch to `11` (HDMI 1, nothing connected) in 52 ms with no error, but the owner saw no black screen and no "No signal". 0 of 16 reads answered during the test. The brightness tests explain why: over DisplayPort the MSI ignores commands; over HDMI it acts on them. **Needs a re-run over HDMI.** | Same |
-| Time per switch | _tbd_ for the switch itself. Reading the current input takes about 60 ms; reading the capabilities string takes 1.4 to 2.8 s. | Loading feedback in the UI |
+| Switch-back works (other input empty)? | MSI over HDMI, run 2 (2026-11-20): **yes.** Switched from `11` (HDMI 1, this PC) to `0F` (DisplayPort, nothing connected) and back; the owner saw it leave and come back. The MSI kept answering over HDMI while showing DisplayPort (16 of 16 reads, all `0F`), so it listens on an inactive input. The switch back was confirmed on the first try. It didn't jump back by itself.<br>MSI over DisplayPort, run 1: didn't switch away at all, because the MSI ignores commands sent over DisplayPort. | Same |
+| Time per switch | MSI over HDMI: the command takes about 65 ms; the MSI reports the new input about 150 ms after it, and the switch back was confirmed within 400 ms. The picture takes longer to appear (not measured). Reading the current input takes about 60 ms; reading the capabilities string takes 1.4 to 2.8 s. | Loading feedback in the UI |
 
 **Decision (2026-11-20):** Switchboard is for the **MSI G27CQ4** (monitor 1 in the probe).
 
@@ -59,10 +60,10 @@ Discovery run on 2026-11-20 on the owner's PC, which has three monitors.
 
 **Checked (2026-11-20):** neither Acer has a DisplayPort port, so Acer `0673`'s capabilities string lists an input (`0F`) that doesn't exist. The MSI does the same with `10` (DisplayPort 2). See [ddc-ci-notes.md](ddc-ci-notes.md#known-problems).
 
-**Next (owner):** switch test on the MSI over HDMI (monitor 2 in the current layout; check discovery if things moved):
+**Switch test on the MSI over HDMI:**
 
-1. Other input empty: `-Monitor 2 -SwitchTo 0x0F` (DisplayPort, nothing connected).
-2. Other device active: the same with a device turned on at the other input.
+1. Other input empty: **done, works** (run 2 above).
+2. Other device active: **next (owner)**. Run `-SwitchTo` with a device turned on at the MSI's DisplayPort or HDMI 2. If no other device is at hand, this PC's DisplayPort cable plugged back into the MSI works as the "device". Windows then sees the MSI twice, so pick the HDMI one (shown as DVI) by its number in discovery.
 
 If the screen doesn't come back after a switch, the right side of the Navi Key opens Input Source by default.
 
