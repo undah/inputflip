@@ -80,7 +80,19 @@ Discovery run on 2026-11-20 on the owner's PC, which has three monitors.
 
 **Conclusion so far (2026-11-20):** over DisplayPort the MSI ignores DDC/CI commands on both routes (Windows dxva2 and NVIDIA's NVAPI I2C). Settings tried: G-SYNC (already off), FreeSync off, 60 Hz. Its replies are garbled through dxva2 (at best 5 of 40) and absent through NVAPI. Long shots left: steps 5 to 7 (power cycle, another cable or port, another driver). Otherwise use the HDMI cabling plan above. Over HDMI everything works.
 
-**Decision (2026-11-20): HDMI plan.** The owner chose it over the DisplayPort long shots. Setup checklist (owner):
+**Switch back over DisplayPort worked once (2026-11-20, 22:32, stage 2 app).** The MSI was showing the PS5 on HDMI; the PC was on DisplayPort as usual. The owner clicked six inputs in the app in 22 seconds (`12`, `0F`, `10`, `11`, `0F`, `10`), and the MSI switched to DisplayPort (the PC): Windows reported the DisplayPort display coming back at 22:32:31, about 7 s after the last two clicks (`0F` at 22:32:21, `10` at 22:32:24). Every read-back failed (`0xC0262589`), so the app showed each switch as unconfirmed. Not yet known: which value did it, and whether a single click works.
+
+**Hypothesis:** over DisplayPort the MSI acts on commands only while it **isn't** showing DisplayPort (no video stream on the link). All stage 1 DisplayPort tests ran while it showed DisplayPort. If this holds, PS5 → PC works without the HDMI cable, and only PC → PS5 needs another way (the Navi Key, or the HDMI plan).
+
+**Test to confirm (owner, at the monitor):**
+
+1. Put the MSI on the PS5 with the Navi Key. Turn the PS5 on.
+2. In Switchboard click **DisplayPort 1** once. Wait 10 s. Did the PC come back?
+3. Repeat step 1, then click **DisplayPort 2** once. Wait 10 s.
+4. Do steps 1 to 3 again to see if it's repeatable.
+5. With the PC on screen, click **HDMI 2** once (PS5 on). Wait 10 s. Did it switch?
+
+**Decision (2026-11-20): HDMI plan.** (Before the finding above; revisit once it's tested.) The owner chose it over the DisplayPort long shots. Setup checklist (owner):
 
 1. Buy a DisplayPort-to-HDMI cable. A passive one is enough for an Acer (1080p, 75 Hz).
 2. Connect one Acer from a free graphics-card DisplayPort port to its HDMI input.
