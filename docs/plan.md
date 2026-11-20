@@ -48,7 +48,7 @@ Discovery run on 2026-11-20 on the owner's PC, which has three monitors.
 | Switch-back works (other input empty)? | MSI over HDMI, run 2 (2026-11-20): **yes.** Switched from `11` (HDMI 1, this PC) to `0F` (DisplayPort, nothing connected) and back; the owner saw it leave and come back. The MSI kept answering over HDMI while showing DisplayPort (16 of 16 reads, all `0F`), so it listens on an inactive input. The switch back was confirmed on the first try. It didn't jump back by itself.<br>MSI over DisplayPort, run 1: didn't switch away at all, because the MSI ignores commands sent over DisplayPort. | Same |
 | Time per switch | MSI over HDMI: the command takes about 65 ms; the MSI reports the new input about 150 ms after it, and the switch back was confirmed within 400 ms. The picture takes longer to appear (not measured). Reading the current input takes about 60 ms; reading the capabilities string takes 1.4 to 2.8 s. | Loading feedback in the UI |
 
-**Decision (2026-11-20):** Switchboard is for the **MSI G27CQ4** (monitor 1 in the probe).
+**Decision (2026-11-20):** Switchboard is for the **MSI G27CQ4** (monitor 1 in the probe). Use case: switch the MSI between this PC and a **PS5**, clicking the switch on another monitor while the MSI shows the PS5.
 
 **Brightness test on the MSI (2026-11-20):** no visible change. Windows accepted the command in 55 ms; the read-back got no answer. Together with switch run 1: **over DisplayPort the MSI doesn't act on DDC/CI commands at all, even though Windows reports success.**
 
@@ -56,14 +56,19 @@ Discovery run on 2026-11-20 on the owner's PC, which has three monitors.
 
 **MSI over HDMI (2026-11-20):** the owner moved the MSI to its HDMI 1, through the cable from Acer `06F0`, which Windows reports as DVI. That Acer is unplugged for now. **The MSI works over HDMI.** Discovery read its capabilities string and current input on the first try, and `-DimTest` dimmed it (read-back `10`) and restored it. So the problem is the MSI's DisplayPort side. Whether DisplayPort DDC/CI works on this PC in general is unknown, since no other monitor here has DisplayPort.
 
-**Consequence for the setup:** Switchboard needs this PC on one of the MSI's HDMI ports; the other device goes on its DisplayPort or other HDMI port. Owner to check that HDMI gives an acceptable refresh rate (it may be lower than 165 Hz over DisplayPort) and where the Acer `06F0` gets plugged in now.
+**Cabling plan (2026-11-20):** Switchboard needs this PC on one of the MSI's HDMI ports, but the graphics card's two HDMI ports drive the two Acers, and the Acers have no DisplayPort. Plan: connect one Acer from a free graphics-card DisplayPort with a DisplayPort-to-HDMI cable. A cheap passive one is enough for the Acer's 1080p at 75 Hz. That frees a graphics-card HDMI port for the MSI.
+
+- PC to MSI HDMI 1 (`11`), PS5 to MSI HDMI 2 (`12`). Switchboard switches between `11` and `12`.
+- Cost: on HDMI the MSI advertises 2560x1440 at up to **144 Hz**, against 165 Hz on DisplayPort (from the EDID modes Windows lists for its HDMI input).
+- Not recommended: the DisplayPort-to-HDMI cable on the MSI itself. 1440p at 144 Hz needs an HDMI 2.0-class adapter, and active adapters don't always pass DDC/CI through.
+- Without buying anything: keep the MSI on DisplayPort and switch with the Navi Key's Input Source button. Switchboard can't control the MSI over DisplayPort.
 
 **Checked (2026-11-20):** neither Acer has a DisplayPort port, so Acer `0673`'s capabilities string lists an input (`0F`) that doesn't exist. The MSI does the same with `10` (DisplayPort 2). See [ddc-ci-notes.md](ddc-ci-notes.md#known-problems).
 
 **Switch test on the MSI over HDMI:**
 
 1. Other input empty: **done, works** (run 2 above).
-2. Other device active: **next (owner)**. Run `-SwitchTo` with a device turned on at the MSI's DisplayPort or HDMI 2. If no other device is at hand, this PC's DisplayPort cable plugged back into the MSI works as the "device". Windows then sees the MSI twice, so pick the HDMI one (shown as DVI) by its number in discovery.
+2. Other device active: **next (owner), once the cabling plan is in place.** With the PS5 on HDMI 2 and turned on, run `-Monitor <MSI> -SwitchTo 0x12`. This is the real use case.
 
 If the screen doesn't come back after a switch, the right side of the Navi Key opens Input Source by default.
 
@@ -85,6 +90,7 @@ If the screen doesn't come back after a switch, the right side of the Navi Key o
   - [ ] Refresh the monitor list when displays are connected or disconnected (`WM_DISPLAYCHANGE`)
 - [ ] **Settings store:** JSON file in `%LOCALAPPDATA%\Switchboard\settings.json` for monitor nicknames, input names, hidden inputs, hotkeys and custom input values.
 - [ ] **Tray flyout:** list of monitors with their inputs. Click an input to switch; the current input is highlighted.
+  - It must be reachable while the switched monitor shows the other device. On Windows 11, tray icons appear only on the main display's taskbar, so if the MSI is the main display, the tray icon disappears along with the picture. Options: make an Acer the main display, rely on hotkeys, or add a small switch window that can sit on another monitor.
 - [ ] **Hotkeys:** global shortcut per input, plus a "cycle inputs" shortcut (`RegisterHotKey`).
 - [ ] **Error handling:** plain messages such as "Your monitor didn't respond. Check that DDC/CI is on." Never show raw exception text.
 
