@@ -74,6 +74,9 @@ Discovery run on 2026-11-20 on the owner's PC, which has three monitors.
 6. **Another DisplayPort cable** or another graphics-card DisplayPort port.
 7. **Update or roll back the NVIDIA driver** (Windows reports 32.0.16.1714).
 8. **NVIDIA's own I2C interface** (NVAPI) instead of the Windows DDC/CI API. A bigger step: needs a new probe, and it's NVIDIA-only.
+   - **Built: `scripts/nvapi-probe.ps1` (2026-11-20).** Owner skipped steps 5 to 7 to try this first. Control on Acer `0673` over HDMI: reads 40 of 40, and a dim command landed (read back `10`, restored to 100).
+   - **MSI over DisplayPort, reads: 0 of 40.** Every reply is `51 FF FF FF ...`: the PC's own source byte `51` echoed back, then nothing (`FF`). Same with reply delays of 50, 150 and 400 ms and I2C speeds default, 33 and 10 kHz. So over DisplayPort nothing from the MSI's DDC/CI side comes back on this route.
+   - **Still open (owner):** `nvapi-probe.ps1 -Display 3 -DimTest`. It shows whether the MSI acts on commands sent this way even though no replies come back. If it dims, try `-Display 3 -SwitchTo 0x11 -From 0x0F`.
 
 If none of these work, use the HDMI cabling plan above.
 

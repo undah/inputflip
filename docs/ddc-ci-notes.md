@@ -61,7 +61,14 @@ DDC/CI over DisplayPort is often less reliable than over HDMI. "Works on HDMI, n
 
 The owner's MSI G27CQ4 is a partial case: on DisplayPort some reads work with correct values, but commands have no effect. It works fully on HDMI. The experiments to try are in [plan.md](plan.md), stage 1.
 
-**Alternate route on NVIDIA:** NVAPI's I2C functions (`NvAPI_I2CWrite` / `NvAPI_I2CRead`, [NVAPI docs](https://docs.nvidia.com/nvapi/group__i2capi.html)) talk to the monitor without the Windows DDC/CI API. [monitorinputwizzard](https://github.com/lunat1q/monitorinputwizzard) uses `NvAPI_I2CWrite` to device `0x6E` to switch inputs on monitors that ignore the standard path. It's NVIDIA-only and untested here. No license is stated in the repo, so read it for ideas only; don't copy its code.
+**Alternate route on NVIDIA:** NVAPI's I2C functions (`NvAPI_I2CWrite` / `NvAPI_I2CRead`, [NVAPI docs](https://docs.nvidia.com/nvapi/group__i2capi.html)) talk to the monitor without the Windows DDC/CI API. [monitorinputwizzard](https://github.com/lunat1q/monitorinputwizzard) uses `NvAPI_I2CWrite` to device `0x6E` to switch inputs on monitors that ignore the standard path. It's NVIDIA-only. No license is stated in that repo, so read it for ideas only; don't copy its code.
+
+`scripts/nvapi-probe.ps1` implements this route from NVIDIA's own headers (MIT). Function IDs come from [nvapi_interface.h](https://github.com/NVIDIA/nvapi/blob/main/nvapi_interface.h); the struct is `NV_I2C_INFO_V3`, version 3, with `displayMask` set to the NVAPI display ID. Details that matter:
+
+- Device address `0x6E` (`0x37` shifted left by one), register address `0x51` (host source byte), `bIsDDCPort = 1`.
+- Set VCP: `84 03 <vcp> <hi> <lo> <chk>`. Get VCP: `82 01 <vcp> <chk>`. The host checksum is the XOR of `6E`, `51` and the message bytes.
+- Wait about 50 ms, then read 11 bytes with no register address: `6E 88 02 <rc> <vcp> <type> <maxH> <maxL> <curH> <curL> <chk>`. The reply checksum is the XOR of `50` and the bytes from `6E` on.
+- On the Acers this works for reads and commands. On the MSI over DisplayPort, every read returns `51 FF FF ...`, so no reply comes back on this route either.
 
 ## Switch-back problem
 
