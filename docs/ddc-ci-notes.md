@@ -48,6 +48,7 @@ Python alternative for quick tests: the `monitorcontrol` package. Command-line a
   - retry reads with backoff and treat a failed read as "unknown", not "wrong";
   - work without the capabilities string (MCCS table plus manual values);
   - not assume a switch failed just because the read-back failed. Corrupted *replies* don't mean the *command* didn't arrive.
+- **The capabilities string can list inputs the monitor doesn't have.** The owner's Acer VG240Y (EDID `ACR 0673`) lists `60(01 0F 11)`, including DisplayPort, but it has no DisplayPort port. It probably reports for the whole model family. Treat detected inputs as suggestions the user can hide or rename, not a list of real ports.
 - **A successful `SetVCPFeature` call doesn't mean the monitor did anything.** On the owner's MSI over DisplayPort, Windows reported success in about 50 ms for both an input switch and a brightness change, and neither had any visible effect. The app can't show "switched" based on the call alone: confirm with a read-back where the monitor supports it, and otherwise show the result as unconfirmed.
 
 ## Switch-back problem
