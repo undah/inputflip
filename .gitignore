@@ -33,3 +33,6 @@ Thumbs.db
 # Installer builds (scripts/build-installer.ps1), and copies of older ones kept for testing updates
 releases/
 releases-*/
+
+# Test logs (scripts/quiet-link-test.ps1)
+logs/
