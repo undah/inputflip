@@ -44,7 +44,7 @@ Discovery run on 2026-11-20 on the owner's PC, which has three monitors.
 | Responds to DDC/CI at all? | Acers: **yes**, every time.<br>MSI over HDMI: **yes.** Capabilities string and current input read on the first try; the brightness test dimmed it (read-back `10`) and restored it.<br>MSI over DisplayPort: **only some of the time, and it ignores commands.** It has stretches where every read works (8 of 8) and stretches where none do (0 of 48, input, brightness, contrast and power alike), with `0xC0262589` (invalid command field) or `0xC026258B` (bad checksum). Longer pauses between commands didn't help. Good reads return correct values (input `0F`, brightness `64` = 100). No DDC/CI option in its menu and no USB port. | Go/no-go for the whole project |
 | Inputs listed in capabilities string | Acer `0673`: `01` VGA 1, `0F` DisplayPort 1, `11` HDMI 1. The monitor has no DisplayPort port, so `0F` is listed but doesn't exist.<br>Acer `06F0`: `01` VGA 1, `11` HDMI 1, `12` HDMI 2<br>MSI (read over HDMI; `model(FALCON)`, MCCS 2.0): `11` HDMI 1, `12` HDMI 2, `0F` DisplayPort 1, `10` DisplayPort 2. Its manual shows one DisplayPort port, so `10` doesn't exist. Over DisplayPort the string never came through. | Automatic input detection |
 | Standard or vendor-specific input values? | Acers: **standard MCCS**. Current-input reads (`11`, `12`) match the listed values. Acer `0673` and the MSI report a maximum of `03` for VCP 60, so the maximum isn't a usable range.<br>MSI: **standard MCCS**. The current input reads `11` over HDMI 1 and `0F` over DisplayPort. | Whether input names can be detected automatically |
-| Switch-back works (other device active)? | _tbd_ (owner runs `-SwitchTo`) | Whether a workaround is needed |
+| Switch-back works (other device active)? | MSI over HDMI, from the app 1.0.5 (2026-11-21, after the cabling plan, PS5 on): **yes.** PC (HDMI 2, `12`) → PS5 (HDMI 1, `11`) at 18:50:04 and back at 18:50:10, each confirmed 150 ms after the command. No screens-off step. Owner confirmed both. | Whether a workaround is needed |
 | Switch-back works (other input empty)? | MSI over HDMI, run 2 (2026-11-20): **yes.** Switched from `11` (HDMI 1, this PC) to `0F` (DisplayPort, nothing connected) and back; the owner saw it leave and come back. The MSI kept answering over HDMI while showing DisplayPort (16 of 16 reads, all `0F`), so it listens on an inactive input. The switch back was confirmed on the first try. It didn't jump back by itself.<br>MSI over DisplayPort, run 1: didn't switch away at all, because the MSI ignores commands sent over DisplayPort. | Same |
 | Time per switch | MSI over HDMI: the command takes about 65 ms; the MSI reports the new input about 150 ms after it, and the switch back was confirmed within 400 ms. The picture takes longer to appear (not measured). Reading the current input takes about 60 ms; reading the capabilities string takes 1.4 to 2.8 s. | Loading feedback in the UI |
 
@@ -130,7 +130,7 @@ So both directions work over DisplayPort, keeping 165 Hz:
 - **1.0.5 no longer re-finds the monitors after a screens-off switch.** The switch caused no display change in the test rounds and the handle kept working; the re-find read the MSI right after waking and, on a garbled answer, cleared the input just assumed.
 - **Firmware (checked 2026-11-21):** MSI's G27CQ4 support page offers no firmware, only a 2019 monitor driver, Display Kit 0.0.2.3 and a Google Play item; its tabs are Driver and Utility & Others. MSI's firmware-over-DisplayPort tool covers only some QD-OLED models. So FW.013 stays.
 
-**Next:** the owner tests 1.0.5 both ways. The HDMI cabling plan below would make both directions instant and confirmed; the owner has the cable (arriving 2026-11-21).
+**Superseded (2026-11-21, 18:50):** the MSI moved to HDMI (cabling plan below) and now switches both ways in 150 ms, confirmed, with no screens-off step. The DisplayPort findings above stay as notes for monitors with the same quirk; the screens-off switch is still in the app for them.
 
 **Stage 1 was thought done** (the way back isn't reliable, above): the MSI switches between the PC (DisplayPort) and the PS5 (HDMI) in both directions with the PS5 on, without new cables.
 
@@ -150,14 +150,24 @@ So both directions work over DisplayPort, keeping 165 Hz:
 4. In Windows, set the MSI to 144 Hz (its HDMI maximum).
 5. Run `ddc-probe.ps1` discovery, then with the PS5 turned on: `-Monitor <MSI> -SwitchTo 0x12`. That's the last stage 1 test (switch-back with a device active on the other input).
 
-Then stage 1 is done.
+**Done (2026-11-21, 18:40 to 18:50).** What was actually set up:
+
+- Cable: BENFEI DisplayPort-to-HDMI, 1.8 m, "4K@30Hz max" with a converter chip. On Acer `06F0` (VG240Y), from a graphics-card DisplayPort port. Not on the MSI: too slow for 1440p at 144 Hz (about 60 Hz at most), and a converter chip may not pass DDC/CI. Acer `06F0` still answered DDC/CI through it in discovery (one garbled read in the app).
+- The MSI on the freed graphics-card HDMI port, into the **MSI's HDMI 2** (PC, `12`); the PS5 stayed on HDMI 1 (`11`). The MSI's DisplayPort cable unplugged.
+- Windows reports the MSI's link as DVI (`outputTechnology` 4), like that port did for the Acer before; `PcInputDetector` counts DVI as HDMI.
+- Discovery (reads only): all three monitors answered on the first try; the MSI's capabilities string came through over HDMI in 2.6 s, current input `12`.
+- Owner's settings.json, MSI entry, edited by hand: `blankScreensWhenLeaving` removed, `pcInput` `0x12`, HDMI 2 shown and first with Alt+PageDown (moved from DisplayPort 1), both DisplayPort inputs hidden.
+- Test from the app (1.0.5, PS5 on): both directions confirmed in 150 ms (results table above).
+- Windows made an Acer the main display after the rewiring; the owner was told how to make the MSI main again (Settings › Display › Multiple displays) and to set 144 Hz.
+
+**Stage 1 is done.**
 
 **Checked (2026-11-20):** neither Acer has a DisplayPort port, so Acer `0673`'s capabilities string lists an input (`0F`) that doesn't exist. The MSI does the same with `10` (DisplayPort 2). See [ddc-ci-notes.md](ddc-ci-notes.md#known-problems).
 
 **Switch test on the MSI over HDMI:**
 
 1. Other input empty: **done, works** (run 2 above).
-2. Other device active: **next (owner), once the cabling plan is in place.** With the PS5 on HDMI 2 and turned on, run `-Monitor <MSI> -SwitchTo 0x12`. This is the real use case.
+2. Other device active: **done, works** (2026-11-21, from the app; PS5 on HDMI 1, PC on HDMI 2).
 
 If the screen doesn't come back after a switch, the right side of the Navi Key opens Input Source by default.
 
