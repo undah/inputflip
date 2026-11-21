@@ -244,8 +244,8 @@ you left it", already in stage 2), and the MSI uses the **screens-off switch** o
         checks at start and on Refresh; an accent **Update** button appears in the title bar when a newer version is
         there, and Settings › About has *Check for updates* / *Install and restart*. Velopack `UpdateManager`, full
         packages. Friends would need a shared source (a public URL or a synced folder) set as `updateSource`.
-    - [ ] **Owner test:** install 1.0.3 (copy of its installer kept in `releases-1.0.3\`), see the Update button
-          offer 1.0.4, click it: the app should restart as 1.0.4 (About shows the version) with settings intact.
+    - [x] **Owner test (12:17):** installed 1.0.3, which found 1.0.4 in `releases\` 0.3 s after starting; Update
+          clicked at 12:17:47, 1.0.4 running at 12:17:50 (owner confirmed, log agrees).
   - [ ] **Installer run, needs the owner:** not run on this PC (it installs, adds shortcuts and starts the app on the
         real settings). The packed app was started from the portable zip and works.
 - [ ] **Testing checklist** (needs the owner; each switches monitors or changes the PC)
