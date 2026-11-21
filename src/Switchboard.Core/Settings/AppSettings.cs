@@ -50,6 +50,13 @@ public sealed class MonitorSettings
     [JsonConverter(typeof(NullableHexValueConverter))]
     public uint? BlankScreensWhenLeaving { get; set; }
 
+    /// <summary>
+    /// The input this PC is plugged into, tagged "This PC" in the app. Found from the cable type Windows reports
+    /// (see PcInputDetector) and remembered, or set from an input's menu. Empty: not known yet.
+    /// </summary>
+    [JsonConverter(typeof(NullableHexValueConverter))]
+    public uint? PcInput { get; set; }
+
     /// <summary>Inputs in display order. Filled from the monitor's capabilities string; you can add inputs by value.</summary>
     public List<InputSettings> Inputs { get; set; } = new();
 }

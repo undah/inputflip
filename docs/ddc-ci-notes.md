@@ -53,6 +53,12 @@ Python alternative for quick tests: the `monitorcontrol` package. Command-line a
 - **A read that succeeds can still be wrong.** On 2026-11-20 the stage 2 app read the MSI G27CQ4's input as `0x11` (HDMI 1) over DisplayPort while the MSI was showing DisplayPort; Windows reported the connection as DisplayPort (`VideoOutputTechnology` 10). So over that DisplayPort link even "good" replies can't be trusted. Another reason for the HDMI cabling plan.
 - **Capabilities strings are slow on the Acers too in the app:** 5.2 to 5.8 s each when all monitors are read at once at startup (1.8 to 2.8 s one at a time in the probe). The app reads them in the background and shows the window first.
 
+## Which inputs have something connected?
+
+DDC/CI can't tell. MCCS has no "signal present" code per input: VCP `0x60` reports only the input on screen, and the capabilities string lists what the model family supports (see above), not what's plugged in. Probing by switching to each input and watching whether auto input switching jumps back would blank the screen, so Switchboard doesn't do it.
+
+What *can* be known is this PC's own input: Windows reports the cable type (`QueryDisplayConfig` output technology), and only some of the monitor's ports fit it. On the owner's PC (2026-11-21) Windows reports the MSI as DisplayPort (`10`), Acer `0673` as HDMI (`5`) and Acer `06F0` as DVI (`4`, a DVI-to-HDMI cable into an HDMI port). So DVI has to count as HDMI, and the two-HDMI-port Acer needs a tie-breaker (the input on screen when first seen). Switchboard tags that input "This PC" (`Settings/PcInputDetector.cs`).
+
 ## DisplayPort
 
 DDC/CI over DisplayPort is often less reliable than over HDMI. "Works on HDMI, not on DisplayPort" is a common report, and the cause varies:

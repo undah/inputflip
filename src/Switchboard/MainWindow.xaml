@@ -41,6 +41,11 @@
                                         <MenuFlyoutItem.Icon><FontIcon Glyph="&#xE7F4;" /></MenuFlyoutItem.Icon>
                                     </MenuFlyoutItem>
                                 </MenuFlyoutSubItem>
+                                <MenuFlyoutItem Text="This PC is plugged in here" Command="{x:Bind SetPcInputCommand}"
+                                    Visibility="{x:Bind local:Ui.Visible(IsNotThisPc), Mode=OneWay}"
+                                    ToolTipService.ToolTip="Moves the This PC tag to this input. Switchboard guesses it from the cable type Windows reports.">
+                                    <MenuFlyoutItem.Icon><FontIcon Glyph="&#xE977;" /></MenuFlyoutItem.Icon>
+                                </MenuFlyoutItem>
                                 <MenuFlyoutItem Text="{x:Bind BlankWhenLeavingMenuText, Mode=OneWay}" Command="{x:Bind BlankWhenLeavingCommand}"
                                     ToolTipService.ToolTip="For a monitor that ignores switch commands while it shows this PC. Switching away turns all screens off for a few seconds, which makes it listen.">
                                     <MenuFlyoutItem.Icon><FontIcon Glyph="&#xE708;" /></MenuFlyoutItem.Icon>

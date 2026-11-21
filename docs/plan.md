@@ -200,6 +200,13 @@ you left it", already in stage 2), and the MSI uses the **screens-off switch** o
         `BrushTransition`/`ScalarTransition` on the row crashed the app (access violation) when the theme changed.
   - [x] Spacing and corners from Windows 11 theme resources: monitors as cards, 4 px rows, 8 px cards. The window no
         longer has an empty strip at the bottom (it was sized as if it had a system title bar, 31 px too tall).
+- [x] **"This PC" tag** (2026-11-21, owner asked which inputs have something connected). DDC/CI can't tell, so only
+      the PC's own input is tagged: `PcInputDetector` (Core) matches the cable type Windows reports to the ports that
+      fit it (HDMI/DVI, DisplayPort/USB-C, VGA), leaving out hidden inputs and ones marked console or TV. When two fit,
+      the one on screen wins. Saved as `pcInput` once found, so it doesn't move when the monitor shows the PS5; the
+      screens-off input counts as the PC's. Wrong guess: right-click › *This PC is plugged in here*. Checked with
+      `--data-dir --no-switch` on the real monitors: Acer `0673` (HDMI) and Acer `06F0` (DVI cable, two HDMI ports,
+      showing HDMI 1) both got `0x11`; the MSI shows it on DisplayPort 1 from its screens-off setting.
 - [x] **Automatic input detection** from the capabilities string (stage 2). Manual **Add input** by value in
       Settings › Monitors. **No Test button** (owner's rule while away: no switching); you test by clicking the new
       input in the main window.
@@ -248,7 +255,7 @@ you left it", already in stage 2), and the MSI uses the **screens-off switch** o
   - [ ] The MSI both ways again with this build (PC → PS5 uses the screens-off switch)
   - [ ] Start with Windows: turn it on, sign out and in
 
-Also checked without the owner: 62 unit tests; the app builds with no warnings (`dotnet build Switchboard.slnx`);
+Also checked without the owner: 73 unit tests; the app builds with no warnings (`dotnet build Switchboard.slnx`);
 first-run setup end to end in a temporary data folder (`--data-dir`, `--no-switch`), where it suggested and turned on
 the screens-off switch for the MSI (`0x0F`); settings edits land in settings.json and the main window; shortcut
 recorder saves, refuses a conflict, and the new shortcut works globally; live theme changes.

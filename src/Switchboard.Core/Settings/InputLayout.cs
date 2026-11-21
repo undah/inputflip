@@ -12,7 +12,8 @@ public sealed record DisplayInput(
     bool Hidden,
     string? Hotkey,
     bool IsCurrent,
-    bool BlankScreensWhenLeaving = false);
+    bool BlankScreensWhenLeaving = false,
+    bool IsThisPc = false);
 
 /// <summary>Combines what a monitor reports with what's in settings into the list of inputs to show.</summary>
 public static class InputLayout
@@ -54,20 +55,23 @@ public static class InputLayout
                 if (!values.Contains(v)) values.Add(v);
         }
 
+        uint? pcInput = PcInputDetector.FromSettings(settings);
         return values.Select(v =>
         {
             byValue.TryGetValue(v, out var s);
             string port = InputCatalog.GetPortName(v);
             string? icon = s?.Icon;
+            bool isPc = pcInput == v;
             return new DisplayInput(
                 v,
                 string.IsNullOrWhiteSpace(s?.Name) ? port : s!.Name!.Trim(),
                 port,
-                icon is not null && Icons.Contains(icon) ? icon.ToLowerInvariant() : "display",
+                icon is not null && Icons.Contains(icon) ? icon.ToLowerInvariant() : isPc ? "pc" : "display",
                 s?.Hidden ?? false,
                 string.IsNullOrWhiteSpace(s?.Hotkey) ? null : s!.Hotkey,
                 monitor.CurrentInput is uint c && InputCatalog.Matches(c, v),
-                settings?.BlankScreensWhenLeaving == v);
+                settings?.BlankScreensWhenLeaving == v,
+                isPc);
         }).ToList();
     }
 

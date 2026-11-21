@@ -23,6 +23,7 @@ It installs to `%LOCALAPPDATA%\SwitchboardApp` with Start menu and desktop short
 Switchboard is a small window with its own taskbar button. The first time, it opens on a monitor other than your main one, with a short setup: the monitors it found and whether they answer, names and icons for your inputs, and shortcuts. Skip it if you like; everything is in Settings later. After that it opens wherever you last left it. Closing it quits the app.
 
 - **Click an input** to switch to it. The input showing now has the accent color. **Right-click** an input (or Shift+F10) to rename it, pick an icon, hide it, or turn on the screens-off switch.
+- The input this PC is plugged into says **This PC**. Monitors can't report which of their ports have something connected, so Switchboard works it out from the cable type Windows reports (HDMI, DisplayPort...). When two ports fit, it picks the one on screen the first time it looks. If it picked wrong, right-click the right input › *This PC is plugged in here*.
 - **Keyboard:** Tab to the list, arrow keys between inputs, Enter to switch. F5 refreshes, Ctrl+, opens Settings.
 - The **pin** keeps the window on top. The **gear** opens Settings:
   - **General:** start with Windows, light or dark, keep on top, edit the settings file.
@@ -78,6 +79,7 @@ It runs the tests, publishes a self-contained Release build to `publish\win-x64\
     "MSI3CB0-000000D1": {
       "nickname": "Main monitor",
       "blankScreensWhenLeaving": "0x0F",      // the screens-off switch: this PC's input
+      "pcInput": "0x0F",                      // tagged "This PC"; found from the cable type and remembered
       "inputs": [
         { "value": "0x0F", "name": "Gaming PC", "icon": "pc" },
         { "value": "0x12", "name": "PS5", "icon": "console", "hotkey": "Ctrl+Alt+Shift+2" },

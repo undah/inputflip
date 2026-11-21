@@ -20,6 +20,8 @@ public interface ISwitchboardActions
 
     void ToggleBlankScreensWhenLeaving(string monitorId, uint value);
 
+    void SetPcInput(string monitorId, uint value);
+
     void OpenSettings(string? page, string? monitorId = null);
 }
 
@@ -45,7 +47,28 @@ public sealed class InputViewModel : ObservableObject
         HideCommand = new RelayCommand(() => _actions.ToggleInputHidden(MonitorId, Value));
         SetIconCommand = new RelayCommand<string>(icon => { if (icon is not null) _actions.SetInputIcon(MonitorId, Value, icon); });
         BlankWhenLeavingCommand = new RelayCommand(() => _actions.ToggleBlankScreensWhenLeaving(MonitorId, Value));
+        SetPcInputCommand = new RelayCommand(() => _actions.SetPcInput(MonitorId, Value));
     }
+
+    public IRelayCommand SetPcInputCommand { get; }
+
+    private bool _isThisPc;
+
+    /// <summary>This PC is plugged into this input (found from the cable type, or set from the menu).</summary>
+    public bool IsThisPc
+    {
+        get => _isThisPc;
+        set
+        {
+            if (SetProperty(ref _isThisPc, value))
+            {
+                OnPropertyChanged(nameof(IsNotThisPc));
+                OnSubtitleChanged();
+            }
+        }
+    }
+
+    public bool IsNotThisPc => !_isThisPc;
 
     public IRelayCommand BlankWhenLeavingCommand { get; }
 
@@ -96,7 +119,17 @@ public sealed class InputViewModel : ObservableObject
         }
     }
 
-    public string Subtitle => _isBusy ? "Switching…" : _name == _portName ? "" : _portName;
+    /// <summary>The port when the name is something else, and "This PC" on the PC's input.</summary>
+    public string Subtitle
+    {
+        get
+        {
+            if (_isBusy) return "Switching…";
+            string port = _name == _portName ? "" : _portName;
+            if (!_isThisPc) return port;
+            return port.Length == 0 ? "This PC" : $"{port} · This PC";
+        }
+    }
 
     public bool HasSubtitle => Subtitle.Length > 0;
 
@@ -152,6 +185,7 @@ public sealed class InputViewModel : ObservableObject
         {
             var parts = new List<string>();
             if (_name != _portName) parts.Add(_portName);
+            if (_isThisPc) parts.Add("This PC is plugged in here");
             if (_hotkey is not null) parts.Add($"Shortcut {_hotkey}");
             if (_isHidden) parts.Add("Hidden");
             parts.Add("Press Shift+F10 for more options");
@@ -184,6 +218,7 @@ public sealed class InputViewModel : ObservableObject
         IsCurrent = input.IsCurrent;
         IsHidden = input.Hidden;
         BlankWhenLeaving = input.BlankScreensWhenLeaving;
+        IsThisPc = input.IsThisPc;
         OnPropertyChanged(nameof(AccessibleName));
         OnPropertyChanged(nameof(AccessibleHelp));
         OnPropertyChanged(nameof(Tooltip));

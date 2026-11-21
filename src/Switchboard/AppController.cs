@@ -296,6 +296,19 @@ public sealed class AppController : ISwitchboardActions, IAsyncDisposable
             : $"Switching {MonitorName(monitorId)} away from {FindInput(monitorId, value)?.Name ?? InputCatalog.GetPortName(value)} now turns the screens off for a few seconds.");
     }
 
+    /// <summary>Moves the "This PC" tag, for when the guess from the cable type was wrong.</summary>
+    public void SetPcInput(string monitorId, uint value)
+    {
+        if (!_settings.Monitors.TryGetValue(monitorId, out var ms)) return;
+        Change(_ => ms.PcInput = value);
+        string inputName = FindInput(monitorId, value)?.Name ?? InputCatalog.GetPortName(value);
+        string status = $"{MonitorName(monitorId)}: this PC is now shown on {inputName}.";
+        // The screens-off input is meant to be the PC's; if it's elsewhere, say so rather than change it quietly.
+        if (ms.BlankScreensWhenLeaving is uint blank && blank != value)
+            status += $" Screens still turn off when leaving {FindInput(monitorId, blank)?.Name ?? InputCatalog.GetPortName(blank)}; change that from its menu if it's wrong too.";
+        SetStatus(status);
+    }
+
     public void RenameInput(string monitorId, uint value, string? name)
     {
         if (!_settings.Monitors.TryGetValue(monitorId, out var ms)) return;
@@ -559,9 +572,18 @@ public sealed class AppController : ISwitchboardActions, IAsyncDisposable
 
     private void OnMonitorsChanged()
     {
-        if (SettingsStore.MergeDetected(_settings, _monitors.Monitors)) SaveSettings();
+        if (MergeDetected()) SaveSettings();
         if (ViewModel.Status == "Looking for monitors…") ViewModel.Status = StandingProblem() ?? "";
         RebuildViewModel();
+    }
+
+    /// <summary>Adds newly seen monitors and inputs to settings and remembers each monitor's PC input. True if anything changed.</summary>
+    private bool MergeDetected()
+    {
+        var snapshots = _monitors.Monitors;
+        bool merged = SettingsStore.MergeDetected(_settings, snapshots);
+        bool learned = PcInputDetector.Learn(_settings, snapshots);
+        return merged || learned;
     }
 
     private void RebuildViewModel()
@@ -661,7 +683,7 @@ public sealed class AppController : ISwitchboardActions, IAsyncDisposable
             ViewModel.AlwaysOnTop = _settings.AlwaysOnTop;
             _window?.SetAlwaysOnTop(_settings.AlwaysOnTop);
             if (Theme != oldTheme) ApplyThemeEverywhere();
-            if (SettingsStore.MergeDetected(_settings, _monitors.Monitors)) SaveSettings();
+            if (MergeDetected()) SaveSettings();
             else RegisterHotkeys();
             RebuildViewModel();
             SetStatus(StandingProblem() ?? "Settings reloaded.");

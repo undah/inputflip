@@ -89,6 +89,7 @@ public static class SettingsEditor
     {
         bool removed = settings.Inputs.RemoveAll(i => i.Value == value) > 0;
         if (settings.BlankScreensWhenLeaving == value) settings.BlankScreensWhenLeaving = null;
+        if (settings.PcInput == value) settings.PcInput = null;
         return removed;
     }
 
