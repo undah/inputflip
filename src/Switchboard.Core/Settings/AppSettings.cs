@@ -30,6 +30,12 @@ public sealed class AppSettings
     /// <summary>Where the window was last placed, in physical screen pixels. Empty: on a monitor other than the main one.</summary>
     public WindowPlacement? WindowPosition { get; set; }
 
+    /// <summary>
+    /// Where the update button looks for new versions: a folder (or web address) with Velopack releases.
+    /// Empty: the releases folder the installer was built in.
+    /// </summary>
+    public string? UpdateSource { get; set; }
+
     /// <summary>Keyed by monitor id (see MonitorIdentity). Monitors show in the order they're listed here.</summary>
     public Dictionary<string, MonitorSettings> Monitors { get; set; } = new(StringComparer.OrdinalIgnoreCase);
 }

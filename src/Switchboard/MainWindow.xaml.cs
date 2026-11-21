@@ -225,7 +225,13 @@ public sealed partial class MainWindow : Window
         _controller.OpenSettings(null);
     }
 
-    private void Refresh_Click(object sender, RoutedEventArgs e) => _ = _controller.RefreshAsync(enumerate: true);
+    private void Refresh_Click(object sender, RoutedEventArgs e)
+    {
+        _ = _controller.RefreshAsync(enumerate: true);
+        _ = _controller.CheckForUpdatesAsync(quiet: true);
+    }
+
+    private void Update_Click(object sender, RoutedEventArgs e) => _ = _controller.InstallUpdateAsync();
 
     private void AlwaysOnTop_Click(object sender, RoutedEventArgs e) =>
         _controller.SetAlwaysOnTop(PinButton.IsChecked == true);

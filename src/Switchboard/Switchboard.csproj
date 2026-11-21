@@ -7,7 +7,7 @@
     <RootNamespace>Switchboard</RootNamespace>
     <ApplicationManifest>app.manifest</ApplicationManifest>
     <ApplicationIcon>Assets\Switchboard.ico</ApplicationIcon>
-    <Version>1.0.2</Version>
+    <Version>1.0.4</Version>
     <Product>Switchboard</Product>
     <Description>Switches your monitor's input over DDC/CI</Description>
     <Platforms>x64;ARM64</Platforms>
@@ -48,6 +48,11 @@
 
   <ItemGroup>
     <Content Include="Assets\Switchboard.ico" CopyToOutputDirectory="PreserveNewest" />
+  </ItemGroup>
+
+  <!-- Where the update button looks by default; scripts/build-installer.ps1 passes its releases folder. -->
+  <ItemGroup Condition="'$(UpdateSource)' != ''">
+    <AssemblyMetadata Include="UpdateSource" Value="$(UpdateSource)" />
   </ItemGroup>
 
   <ItemGroup>

@@ -239,9 +239,13 @@ you left it", already in stage 2), and the MSI uses the **screens-off switch** o
 - [x] **Packaging:** `scripts/build-installer.ps1` → `releases\SwitchboardApp-win-Setup.exe` (78 MB, includes .NET 10
       and the Windows App SDK; friends need nothing else) and a portable zip. Velopack 1.2.161, unsigned, not
       published. Real `.ico` (16 to 256 px) drawn by `IconArt` in Core. Start with Windows is in Settings.
-  - [ ] **Auto-update: not done, owner's call.** Velopack can update from GitHub Releases, but the repo is private,
-        so friends couldn't reach it. Options: make releases public somewhere (a public repo or any static folder),
-        then add `UpdateManager` with that URL.
+  - [x] **Update button (1.0.3, 2026-11-21).** Owner chose this PC's `releases\` folder as the source (repo is
+        private, so not GitHub). The build bakes the folder path in; settings.json `updateSource` overrides it. The app
+        checks at start and on Refresh; an accent **Update** button appears in the title bar when a newer version is
+        there, and Settings › About has *Check for updates* / *Install and restart*. Velopack `UpdateManager`, full
+        packages. Friends would need a shared source (a public URL or a synced folder) set as `updateSource`.
+    - [ ] **Owner test:** install 1.0.3 (copy of its installer kept in `releases-1.0.3\`), see the Update button
+          offer 1.0.4, click it: the app should restart as 1.0.4 (About shows the version) with settings intact.
   - [ ] **Installer run, needs the owner:** not run on this PC (it installs, adds shortcuts and starts the app on the
         real settings). The packed app was started from the portable zip and works.
 - [ ] **Testing checklist** (needs the owner; each switches monitors or changes the PC)

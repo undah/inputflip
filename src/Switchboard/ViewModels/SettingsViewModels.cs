@@ -33,6 +33,8 @@ public sealed class SettingsViewModel : ObservableObject
         OpenDataFolderCommand = new RelayCommand(app.OpenDataFolder);
         RunSetupCommand = new RelayCommand(app.OpenSetup);
         CopyAllDiagnosticsCommand = new RelayCommand(() => CopyText(app.Diagnostics(null)));
+        CheckUpdatesCommand = new AsyncRelayCommand(() => app.CheckForUpdatesAsync(quiet: true));
+        InstallUpdateCommand = new AsyncRelayCommand(app.InstallUpdateAsync);
         Sync();
     }
 
@@ -128,6 +130,34 @@ public sealed class SettingsViewModel : ObservableObject
 
     public bool NoSwitch => _app.NoSwitch;
 
+    private string _updateMessage = "";
+    private bool _canInstallUpdate;
+    private bool _canCheckUpdates = true;
+
+    /// <summary>The result of the last update check, in words.</summary>
+    public string UpdateMessage => _updateMessage;
+
+    public bool CanInstallUpdate => _canInstallUpdate;
+
+    public bool CanCheckUpdates => _canCheckUpdates;
+
+    public IAsyncRelayCommand CheckUpdatesCommand { get; }
+
+    public IAsyncRelayCommand InstallUpdateCommand { get; }
+
+    private void SyncUpdates()
+    {
+        var check = _app.UpdateStatus;
+        bool installing = _app.ViewModel.IsUpdating;
+        string message = installing ? $"Installing version {check.NewVersion}. Switchboard restarts when it's done."
+            : _app.IsCheckingForUpdates ? "Checking…"
+            : check.State == UpdateState.Unknown ? "Not checked yet."
+            : check.Message;
+        Set(ref _updateMessage, message, nameof(UpdateMessage));
+        Set(ref _canInstallUpdate, check.State == UpdateState.Available && !installing, nameof(CanInstallUpdate));
+        Set(ref _canCheckUpdates, !_app.IsCheckingForUpdates && !installing, nameof(CanCheckUpdates));
+    }
+
     // ---- Keeping in step ----
 
     internal bool Syncing { get; private set; }
@@ -143,6 +173,7 @@ public sealed class SettingsViewModel : ObservableObject
             Set(ref _startWithWindows, _app.StartsWithWindows, nameof(StartWithWindows));
             Set(ref _themeIndex, SettingsEditor.NormalizeTheme(settings.Theme) switch { SettingsEditor.ThemeLight => 1, SettingsEditor.ThemeDark => 2, _ => 0 }, nameof(ThemeIndex));
             Set(ref _alwaysOnTop, settings.AlwaysOnTop, nameof(AlwaysOnTop));
+            SyncUpdates();
 
             // Monitors in settings order (the order the app shows them), including ones that aren't connected now.
             var ids = settings.Monitors.Keys.ToList();

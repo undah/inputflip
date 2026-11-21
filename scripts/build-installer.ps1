@@ -9,6 +9,9 @@
     releases\SwitchboardApp-win-Setup.exe the installer to give to people
     releases\SwitchboardApp-win-Portable.zip  the same app without installing
 
+  releases\ is also where the installed app's Update button looks (the path is baked into the build; settings.json's
+  "updateSource" overrides it). So on this PC: bump <Version>, run this script, click Update in the app.
+
   The installer puts Switchboard in %LOCALAPPDATA%\SwitchboardApp and adds Start menu and desktop shortcuts.
   Settings stay in %LOCALAPPDATA%\Switchboard, so uninstalling keeps them. The pack id isn't "Switchboard"
   because Velopack removes its whole install folder on uninstall, which would take the settings with it.
@@ -54,7 +57,8 @@ try {
 
     if (Test-Path $publish) { Remove-Item -Recurse -Force $publish }
     Run "Publish $Version (Release, self-contained, win-x64)" {
-        dotnet publish $project -c Release -r win-x64 -p:Platform=x64 --self-contained -p:Version=$Version -o $publish --nologo
+        # UpdateSource: the app's update button looks in this releases folder (settings.json's updateSource overrides it).
+        dotnet publish $project -c Release -r win-x64 -p:Platform=x64 --self-contained -p:Version=$Version "-p:UpdateSource=$releases" -o $publish --nologo
     }
 
     # The Windows App SDK brings its on-device AI runtime (onnxruntime, DirectML, Microsoft.Windows.AI.*), about
@@ -65,7 +69,8 @@ try {
     $unused | Remove-Item
 
     # vpk refuses to pack a version that's already in releases\, so a second build of the same version would fail.
-    # Releases aren't published and there are no updates to make deltas for, so start from an empty folder.
+    # Start from an empty folder: the installed app's Update button reads it and only needs the newest full package.
+    # Bump <Version> in Switchboard.csproj for each build you want the button to offer.
     if (Test-Path $releases) { Remove-Item -Recurse -Force $releases }
 
     Run 'Pack with Velopack' {

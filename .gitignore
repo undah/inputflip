@@ -30,5 +30,6 @@ Thumbs.db
 # Local Claude settings (shared settings in .claude/settings.json are fine to commit)
 .claude/settings.local.json
 
-# Installer builds (scripts/build-installer.ps1)
+# Installer builds (scripts/build-installer.ps1), and copies of older ones kept for testing updates
 releases/
+releases-*/

@@ -27,6 +27,7 @@ public sealed class AppController : ISwitchboardActions, IAsyncDisposable
     private readonly MonitorService _monitors = new();
     private readonly SettingsStore _store = new(AppPaths.SettingsFile);
     private readonly StartupRegistration _startup = new();
+    private readonly Updater _updater = new();
     private readonly Dictionary<int, Func<Task>> _hotkeyActions = new();
     private readonly Dictionary<string, string> _shortcutProblems = new();
     private readonly DispatcherQueueTimer _displayChangeTimer;
@@ -131,12 +132,56 @@ public sealed class AppController : ISwitchboardActions, IAsyncDisposable
 
         _ = RefreshAsync(enumerate: true);
         ShowWindow();
+        _ = CheckForUpdatesAsync(quiet: true);
 
         // First run: no settings file yet. Not when the file exists but has a mistake.
         string? open = _options.Open;
         if (!loaded.FileExisted && open is null) open = "setup";
         if (open == "setup") OpenSetup();
         else if (open?.StartsWith("settings", StringComparison.Ordinal) == true) OpenSettings(open.Contains(':') ? open[(open.IndexOf(':') + 1)..] : null);
+    }
+
+    // ---- Updates ----
+
+    /// <summary>The result of the last update check.</summary>
+    public UpdateCheck UpdateStatus => _updater.Last;
+
+    public bool IsCheckingForUpdates { get; private set; }
+
+    /// <summary>
+    /// Looks for a new version. Quiet (at start and on Refresh): no status line, only the update button if one is found.
+    /// </summary>
+    public async Task CheckForUpdatesAsync(bool quiet)
+    {
+        if (IsCheckingForUpdates || ViewModel.IsUpdating) return;
+        IsCheckingForUpdates = true;
+        StateChanged?.Invoke();
+        try
+        {
+            var result = await _updater.CheckAsync(_settings.UpdateSource);
+            ViewModel.UpdateVersion = result.State == UpdateState.Available ? result.NewVersion : null;
+            if (!quiet) SetStatus(result.Message);
+        }
+        finally
+        {
+            IsCheckingForUpdates = false;
+            StateChanged?.Invoke();
+            _window?.FitToContent();
+        }
+    }
+
+    /// <summary>Downloads the update, then closes Switchboard, installs it and starts the new version.</summary>
+    public async Task InstallUpdateAsync()
+    {
+        if (ViewModel.IsUpdating || ViewModel.UpdateVersion is not { } version) return;
+        ViewModel.IsUpdating = true;
+        StateChanged?.Invoke();
+        SetStatus($"Getting version {version}…");
+        string? problem = await _updater.InstallAsync(percent => _dispatcher.TryEnqueue(() => SetStatus($"Getting version {version}… {percent}%")));
+        // When it works, Switchboard closes here and the new version starts.
+        ViewModel.IsUpdating = false;
+        StateChanged?.Invoke();
+        if (problem is not null) SetStatus(problem);
     }
 
     /// <summary>Shows the window and brings it to the front (second launch, show shortcut).</summary>

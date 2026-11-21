@@ -141,14 +141,33 @@
                 <ColumnDefinition Width="Auto" />
                 <ColumnDefinition Width="Auto" />
                 <ColumnDefinition Width="Auto" />
+                <ColumnDefinition Width="Auto" />
                 <ColumnDefinition x:Name="CaptionSpace" Width="92" />
             </Grid.ColumnDefinitions>
             <Grid x:Name="TitleArea" Background="Transparent" ColumnDefinitions="Auto,*" ColumnSpacing="12" Padding="16,0,0,0">
                 <Image Source="ms-appx:///Assets/Switchboard.ico" Width="16" Height="16" VerticalAlignment="Center" AutomationProperties.AccessibilityView="Raw" />
                 <TextBlock Grid.Column="1" Text="Switchboard" Style="{StaticResource CaptionTextBlockStyle}" VerticalAlignment="Center" TextWrapping="NoWrap" TextTrimming="CharacterEllipsis" />
             </Grid>
+            <!-- Only there when a newer version is ready. -->
             <Button
                 Grid.Column="1"
+                Style="{StaticResource AccentButtonStyle}"
+                Height="28"
+                Padding="10,0"
+                Margin="0,0,4,0"
+                VerticalAlignment="Center"
+                Visibility="{x:Bind local:Ui.Visible(ViewModel.HasUpdate), Mode=OneWay}"
+                IsEnabled="{x:Bind local:Ui.Not(ViewModel.IsUpdating), Mode=OneWay}"
+                Click="Update_Click"
+                AutomationProperties.Name="{x:Bind ViewModel.UpdateTooltip, Mode=OneWay}"
+                ToolTipService.ToolTip="{x:Bind ViewModel.UpdateTooltip, Mode=OneWay}">
+                <StackPanel Orientation="Horizontal" Spacing="6">
+                    <FontIcon Glyph="&#xE896;" FontSize="12" />
+                    <TextBlock Text="Update" FontSize="12" />
+                </StackPanel>
+            </Button>
+            <Button
+                Grid.Column="2"
                 Style="{StaticResource IconButtonStyle}"
                 Click="Refresh_Click"
                 AutomationProperties.Name="Refresh monitors"
@@ -163,7 +182,7 @@
             </Button>
             <ToggleButton
                 x:Name="PinButton"
-                Grid.Column="2"
+                Grid.Column="3"
                 Width="40"
                 Height="32"
                 Padding="0"
@@ -176,7 +195,7 @@
             </ToggleButton>
             <Button
                 x:Name="SettingsButton"
-                Grid.Column="3"
+                Grid.Column="4"
                 Style="{StaticResource IconButtonStyle}"
                 Click="Settings_Click"
                 AutomationProperties.Name="Settings"

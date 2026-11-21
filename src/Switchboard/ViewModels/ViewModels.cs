@@ -370,6 +370,29 @@ public sealed class MainViewModel : ObservableObject
 
     public bool IsRefreshing { get => _isRefreshing; set => SetProperty(ref _isRefreshing, value); }
 
+    private string? _updateVersion;
+    private bool _isUpdating;
+
+    /// <summary>The newer version ready to install, or null.</summary>
+    public string? UpdateVersion
+    {
+        get => _updateVersion;
+        set
+        {
+            if (SetProperty(ref _updateVersion, value))
+            {
+                OnPropertyChanged(nameof(HasUpdate));
+                OnPropertyChanged(nameof(UpdateTooltip));
+            }
+        }
+    }
+
+    public bool HasUpdate => _updateVersion is not null;
+
+    public string UpdateTooltip => $"Update to version {_updateVersion}. Switchboard restarts.";
+
+    public bool IsUpdating { get => _isUpdating; set => SetProperty(ref _isUpdating, value); }
+
     public bool IsEmpty => Monitors.Count == 0;
 
     internal void NotifyEmptyChanged() => OnPropertyChanged(nameof(IsEmpty));

@@ -30,6 +30,7 @@ Switchboard is a small window with its own taskbar button. The first time, it op
   - **Monitors:** names, order, icons, which inputs show, add an input by its value, the screens-off switch.
   - **Shortcuts:** click a shortcut and press new keys. Switchboard says if another app or another Switchboard shortcut already has them.
   - **About:** version, log, run setup again, and each monitor's diagnostics (its capabilities string) to copy into a bug report.
+- **Updates:** when a newer version is in the update folder, an **Update** button appears in the title bar; it installs it and restarts Switchboard. Settings › About has *Check for updates*. The folder is the `releases` folder the installer was built in, unless `updateSource` in the settings file says otherwise.
 - **Shortcuts** work while Switchboard runs, even minimized: `Ctrl+Alt+Shift+I` switches the main monitor to its next input; `Ctrl+Alt+Shift+S` brings the window to the front. Give any input its own shortcut in Settings › Shortcuts.
 
 **Monitors that won't switch away from this PC** (like the MSI G27CQ4 over DisplayPort): in Settings › Monitors, set *Turn the screens off when switching away from* to this PC's input (setup suggests it when a monitor looks like that). Switching away from that input then turns all screens off for a few seconds, sends the command while no picture is on the cable, and turns them back on. Right after that, the monitor ignores commands for a few seconds (2 to 4 on the MSI), so a switch back in that time is re-sent every 2 seconds until it takes. Switch to the other device from Switchboard, not the monitor's own button: after a switch by hand, the MSI G27CQ4 ignored the way back.
@@ -75,6 +76,7 @@ It runs the tests, publishes a self-contained Release build to `publish\win-x64\
   "cycleHotkey": "Ctrl+Alt+Shift+I",
   "cycleMonitor": "MSI3CB0-000000D1",        // which monitor the cycle shortcut switches; empty = main display
   "theme": "dark",                            // "light", "dark", or leave out to follow Windows
+  "updateSource": "D:\\Shared\\Switchboard",  // where Update looks: a folder or web address; leave out for the build's releases folder
   "monitors": {
     "MSI3CB0-000000D1": {
       "nickname": "Main monitor",
