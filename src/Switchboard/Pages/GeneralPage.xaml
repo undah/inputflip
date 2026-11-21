@@ -49,6 +49,17 @@
             </controls:SettingsCard.Action>
         </controls:SettingsCard>
 
+        <controls:SettingsCard Header="Move the mouse out of the way" Description="When a monitor switches from this PC to another device with the mouse on it, the mouse moves to Switchboard's window. Switching back to this PC puts it back." Glyph="&#xE962;">
+            <controls:SettingsCard.Action>
+                <ToggleSwitch
+                    IsOn="{x:Bind ViewModel.MoveMouse, Mode=TwoWay}"
+                    OnContent="On"
+                    OffContent="Off"
+                    MinWidth="0"
+                    AutomationProperties.Name="Move the mouse out of the way" />
+            </controls:SettingsCard.Action>
+        </controls:SettingsCard>
+
         <TextBlock Text="Advanced" Style="{StaticResource SectionHeaderStyle}" />
         <controls:SettingsCard Header="Settings file" Description="{x:Bind ViewModel.SettingsFilePath}" Glyph="&#xE943;">
             <controls:SettingsCard.Action>

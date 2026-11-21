@@ -27,7 +27,7 @@
                 <controls:ShortcutRecorder Item="{x:Bind ViewModel.CycleShortcut}" />
             </controls:SettingsCard.Action>
         </controls:SettingsCard>
-        <controls:SettingsCard Header="Monitor for the next-input shortcut" Description="Automatic uses the main display, or the first monitor that answers." Glyph="&#xE7F4;">
+        <controls:SettingsCard Header="Monitor for the next-input shortcut" Description="Automatic uses the main display, or else the first monitor in the window. Hidden monitors and ones with a single input shown are skipped." Glyph="&#xE7F4;">
             <controls:SettingsCard.Action>
                 <ComboBox
                     ItemsSource="{x:Bind ViewModel.CycleMonitorOptions}"

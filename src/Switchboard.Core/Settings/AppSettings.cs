@@ -27,6 +27,13 @@ public sealed class AppSettings
     /// <summary>Keep the window above other windows.</summary>
     public bool AlwaysOnTop { get; set; }
 
+    /// <summary>
+    /// Don't move the mouse when a monitor switches. Normally, when a monitor switches from this PC to another device
+    /// while the mouse is on it, the mouse moves to Switchboard's window, and back when you switch to this PC again.
+    /// (Stored as the opt-out because settings.json leaves out false values.)
+    /// </summary>
+    public bool LeaveMouseAlone { get; set; }
+
     /// <summary>Where the window was last placed, in physical screen pixels. Empty: on a monitor other than the main one.</summary>
     public WindowPlacement? WindowPosition { get; set; }
 

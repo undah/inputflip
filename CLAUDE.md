@@ -37,6 +37,7 @@ Check `docs/plan.md`: ticked boxes are done, the "Results" table in stage 1 hold
 - DDC/CI through `dxva2.dll` P/Invoke; hotkeys through `RegisterHotKey`.
 - Monitor identity from the EDID Windows caches in the registry (`HKLM\SYSTEM\CurrentControlSet\Enum\DISPLAY\...\Device Parameters\EDID`), not WMI.
 - Settings in `%LOCALAPPDATA%\Switchboard\settings.json`, log in `switchboard.log` next to it. `--data-dir <folder>` (or `SWITCHBOARD_DATA_DIR`) uses another folder; such a copy runs alongside the normal one.
+- Capabilities strings are cached in `capabilities.json` next to settings.json (read once per monitor; About › Read again). **DDC/CI calls to different monitors block each other on the owner's PC** (an MSI read waited 2.6 s behind an Acer's capabilities read), so keep DDC/CI traffic to what's needed: it delays switches on every monitor.
 - Default hotkeys avoid `Ctrl+Alt+letter`/digit (AltGr on many layouts): `Ctrl+Alt+Shift+I` cycles, `Ctrl+Alt+Shift+S` brings the window to the front.
 - Stage 1 probe is a PowerShell script (`scripts/ddc-probe.ps1`) using `Add-Type` so it runs with no build step.
 
@@ -66,6 +67,7 @@ Check `docs/plan.md`: ticked boxes are done, the "Results" table in stage 1 hold
 - User-facing text: sentence case, plain language, errors say what happened and what to do. No raw exception text in the UI.
 - Release physical monitor handles (`DestroyPhysicalMonitor`). A handle can be `0`; track "has a handle" separately.
 - Never report a switch as done from the `SetVCPFeature` result alone; confirm with a read-back, otherwise say it's unconfirmed.
+- A switch sends its command before doing anything else (window, mouse, log). The window shows the new input at once and corrects itself if the read-back disagrees.
 - Don't test by clicking inputs or pressing switch hotkeys unless the owner is at the PC: it really switches their monitors. To test the UI safely, start a copy with `--data-dir <temp folder> --no-switch` (add `--open settings:monitors` or `--open setup` to land on a window). It still reads the real monitors.
 
 ## Environment

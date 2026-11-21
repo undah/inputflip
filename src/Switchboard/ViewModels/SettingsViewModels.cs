@@ -19,6 +19,7 @@ public sealed class SettingsViewModel : ObservableObject
     private bool _startWithWindows;
     private int _themeIndex;
     private bool _alwaysOnTop;
+    private bool _moveMouse;
     private string? _generalMessage;
     private int _cycleMonitorIndex;
     private List<string?> _cycleMonitorIds = [];
@@ -27,7 +28,7 @@ public sealed class SettingsViewModel : ObservableObject
     {
         _app = app;
         ShowShortcut = new ShortcutItemViewModel(app, ShortcutSlots.Show, "Bring Switchboard to the front", "Shows the window, even when it's minimized or behind other windows.", "\uE737");
-        CycleShortcut = new ShortcutItemViewModel(app, ShortcutSlots.Cycle, "Switch to the next input", "Goes through the shown inputs of one monitor, one press at a time.", "\uE8AB");
+        CycleShortcut = new ShortcutItemViewModel(app, ShortcutSlots.Cycle, "Switch to the next input", "Goes through the shown inputs of one monitor, one press at a time. With two inputs shown, it flips between them.", "\uE8AB");
         EditSettingsFileCommand = new RelayCommand(app.EditSettingsFile);
         OpenLogCommand = new RelayCommand(() => LogMessage = app.OpenLog() ? null : "There's nothing in the log yet.");
         OpenDataFolderCommand = new RelayCommand(app.OpenDataFolder);
@@ -73,6 +74,16 @@ public sealed class SettingsViewModel : ObservableObject
         set
         {
             if (SetProperty(ref _alwaysOnTop, value) && !Syncing) _app.SetAlwaysOnTop(value);
+        }
+    }
+
+    /// <summary>Move the mouse off a monitor that switches to another device, and back afterwards.</summary>
+    public bool MoveMouse
+    {
+        get => _moveMouse;
+        set
+        {
+            if (SetProperty(ref _moveMouse, value) && !Syncing) _app.Change(s => s.LeaveMouseAlone = !value);
         }
     }
 
@@ -173,6 +184,7 @@ public sealed class SettingsViewModel : ObservableObject
             Set(ref _startWithWindows, _app.StartsWithWindows, nameof(StartWithWindows));
             Set(ref _themeIndex, SettingsEditor.NormalizeTheme(settings.Theme) switch { SettingsEditor.ThemeLight => 1, SettingsEditor.ThemeDark => 2, _ => 0 }, nameof(ThemeIndex));
             Set(ref _alwaysOnTop, settings.AlwaysOnTop, nameof(AlwaysOnTop));
+            Set(ref _moveMouse, !settings.LeaveMouseAlone, nameof(MoveMouse));
             SyncUpdates();
 
             // Monitors in settings order (the order the app shows them), including ones that aren't connected now.

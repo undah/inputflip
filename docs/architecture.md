@@ -34,7 +34,8 @@ The hotkey service hands its switch requests to the monitor service, so a shortc
 - Reads capabilities: `GetCapabilitiesStringLength` + `CapabilitiesRequestAndCapabilitiesReply`, then parses the `vcp(... 60(0F 11 12) ...)` section.
 - Reads current input: `GetVCPFeatureAndVCPFeatureReply(handle, 0x60, ...)`.
 - Switches input: `SetVCPFeature(handle, 0x60, value)`.
-- All DDC/CI calls go through a per-monitor serial queue on a background thread, with retries and timeouts. Never call DDC/CI from the UI thread.
+- All DDC/CI calls go through a per-monitor serial queue on a background thread, with retries and timeouts. Never call DDC/CI from the UI thread. On the owner's PC calls to *different* monitors also wait for each other (see ddc-ci-notes.md), so keep DDC/CI traffic to what's needed: capabilities strings are kept in `capabilities.json` between runs, and the quick re-read when the window is activated skips hidden monitors and waits 300 ms so it doesn't land in front of a click's switch.
+- A switch sends the command before anything else (the window, the mouse, the log), then reads the input back right away and every 100 ms for up to 2 s. A newer switch on the same monitor ends an older one's read-back (`SwitchStatus.Superseded`). The log line for each switch says how long after the key or click the command went out and when it was confirmed.
 - Reads each display's cable type (DisplayPort, HDMI...) from `QueryDisplayConfig`, matched to the monitor by its device interface path. Used for the setup's screens-off suggestion and shown in Settings.
 - Listens for display changes and re-enumerates.
 - `ReadOnly` (the `--no-switch` option) blocks every switch command; reads still work.
@@ -43,7 +44,8 @@ The hotkey service hands its switch requests to the monitor service, so a shortc
 ### Settings store
 - `%LOCALAPPDATA%\Switchboard\settings.json`
 - Per monitor (keyed by EDID id, listed in display order): nickname, hidden, the screens-off input, inputs (value, name, icon, hidden, hotkey; listed in display order).
-- Global: theme, always on top, window position, the show and cycle shortcuts and the cycle monitor.
+- Global: theme, always on top, window position, the show and cycle shortcuts and the cycle monitor, `leaveMouseAlone` (turns off moving the mouse when a monitor switches away from the PC).
+- `capabilities.json` next to it: each monitor's capabilities string, so it's read once, not at every start.
 - Start with Windows lives in the registry (HKCU Run), where Windows and Task Manager read it.
 - The settings window's edits are pure functions in `Core/Settings/SettingsEditor.cs` (reorder, add, remove...), unit-tested.
 - `--data-dir` or `SWITCHBOARD_DATA_DIR` points the app at another folder (testing, first-run setup).
@@ -55,7 +57,7 @@ The hotkey service hands its switch requests to the monitor service, so a shortc
 - The recorder unregisters all of Switchboard's hotkeys while it listens, so pressing one records it instead of switching, and test-registers the new combination to see whether another app has it.
 
 ### UI (WinUI 3)
-- **App window** (`MainWindow`): fixed width, sized to its content, Mica background, our header as the title bar (refresh, pin, settings). Each monitor is a card of input rows; the input showing now has the accent fill. Opens where it was last left; closing quits. Not a tray app: the owner keeps it open on an Acer, because the tray lives on the MSI's taskbar, which disappears when the MSI shows the PS5.
+- **App window** (`MainWindow`): fixed width, sized to its content, Mica background, our header as the title bar (refresh, pin, settings). Each monitor is a card of input rows; the input showing now has the accent fill. A switch moves the fill at once; the monitor's confirmation comes a moment later and only shows if something's wrong (status line), or as a spinner on the row if it takes over 400 ms. Narrator still hears "switched to ..." as a notification. Opens where it was last left; closing quits. Not a tray app: the owner keeps it open on an Acer, because the tray lives on the MSI's taskbar, which disappears when the MSI shows the PS5.
 - **Settings window** (`SettingsWindow`): NavigationView with General / Monitors / Shortcuts / About pages (`Pages/`). Changes apply and save at once.
 - **First-run setup** (`SetupWindow`): shown when settings.json doesn't exist. Monitors found, input names and icons, the screens-off suggestion when a monitor needs it, shortcuts. Skippable; About › Run setup opens it again.
 - **Host window** (`Native/HostWindow.cs`): hidden Win32 window for global hotkeys, display changes and resume from sleep.

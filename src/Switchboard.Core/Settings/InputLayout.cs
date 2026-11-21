@@ -86,6 +86,23 @@ public static class InputLayout
     }
 
     /// <summary>
+    /// The monitor the next-input shortcut switches when settings don't name one: the main display, else the first
+    /// monitor in the window. Hidden monitors are skipped, and so are monitors with fewer than two inputs shown, which
+    /// have nothing to go back and forth between. Null if no monitor qualifies.
+    /// </summary>
+    /// <param name="monitors">Connected monitors, in the window's order.</param>
+    public static MonitorSnapshot? PickCycleMonitor(IReadOnlyList<MonitorSnapshot> monitors, AppSettings settings)
+    {
+        var candidates = monitors.Where(m =>
+        {
+            if (m.Health == MonitorHealth.Unavailable || (m.Health != MonitorHealth.Responding && !m.HasAnswered)) return false;
+            settings.Monitors.TryGetValue(m.Id, out var ms);
+            return ms?.Hidden != true && Build(m, ms).Count(i => !i.Hidden) >= 2;
+        }).ToList();
+        return candidates.FirstOrDefault(m => m.IsPrimary) ?? candidates.FirstOrDefault();
+    }
+
+    /// <summary>
     /// Whether switching this monitor to <paramref name="target"/> needs the screens turned off first:
     /// the monitor has a "blank when leaving" input, and the target is a different input.
     /// </summary>

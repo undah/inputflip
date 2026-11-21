@@ -122,6 +122,35 @@ public sealed partial class MainWindow : Window
     /// <summary>The display the window is on, for opening other windows next to it.</summary>
     public DisplayArea Display => DisplayArea.GetFromWindowId(AppWindow.Id, DisplayAreaFallback.Primary);
 
+    /// <summary>Where the window is on screen in physical pixels, or null when it's minimized or hidden.</summary>
+    public Switchboard.Core.Monitors.ScreenRect? ScreenBounds
+    {
+        get
+        {
+            if (!AppWindow.IsVisible || _presenter.State == OverlappedPresenterState.Minimized) return null;
+            var p = AppWindow.Position;
+            var s = AppWindow.Size;
+            return new Switchboard.Core.Monitors.ScreenRect(p.X, p.Y, p.X + s.Width, p.Y + s.Height);
+        }
+    }
+
+    /// <summary>
+    /// Has Narrator read a message without showing it, for news the window already shows another way (the highlight
+    /// moving to the new input).
+    /// </summary>
+    public void Announce(string text)
+    {
+        try
+        {
+            var peer = FrameworkElementAutomationPeer.FromElement(SettingsButton) ?? FrameworkElementAutomationPeer.CreatePeerForElement(SettingsButton);
+            peer?.RaiseNotificationEvent(AutomationNotificationKind.ActionCompleted, AutomationNotificationProcessing.ImportantMostRecent, text, "SwitchboardSwitch");
+        }
+        catch (Exception ex)
+        {
+            Switchboard.Core.Log.Warn($"Announcing \"{text}\" failed: {ex.Message}");
+        }
+    }
+
     /// <summary>Sizes the window to its content, keeping its top-left corner where it is.</summary>
     public void FitToContent()
     {

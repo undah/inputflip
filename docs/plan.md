@@ -302,6 +302,64 @@ first-run setup end to end in a temporary data folder (`--data-dir`, `--no-switc
 the screens-off switch for the MSI (`0x0F`); settings edits land in settings.json and the main window; shortcut
 recorder saves, refuses a conflict, and the new shortcut works globally; live theme changes.
 
+### Fast PC ↔ PS5 switch (1.0.6, 2026-11-21 evening)
+
+Goal (owner): the MSI's switch between the PC and the PS5 as fast and smooth as it can be, well under a second. The
+owner's answers (18:55): add a toggle key and keep Alt+PageDown / Alt+PageUp; the picture already comes back in
+**under 1 s** in both directions; yes to moving the mouse off the MSI while it shows the PS5 and back afterwards; after
+a switch that worked, just move the highlight (no status message).
+
+**Where the time went in 1.0.5** (log of 18:50, code reading, read-only scripts at 19:00 to 19:08):
+
+| Step | 1.0.5 | Notes |
+|---|---|---|
+| Key press to command | ~0 ms, unless another DDC/CI call is in flight | A log line was written on the UI thread before the command |
+| `SetVCPFeature` | ~65 ms | The monitor gets it at the start; the rest is dxva2's 50 ms wait after a write |
+| Monitor switches, picture | under 1 s (owner) | The MSI's own work; nothing the app can speed up |
+| Read-back | first read 150 ms after the command, ~60 ms each | Confirmed on the first read both times (288 ms from command to "switched") |
+| Window | highlight moved only after the read-back | Plus an 8 s status line |
+| Input read, any monitor | 57 to 72 ms, median 62 to 64 | 20 of 20 on all three |
+| Capabilities read at every start | 2.6 s (MSI alone), 5.6 s (all three at once) | Blocks every monitor, see below |
+
+**Finding: DDC/CI calls to different monitors wait for each other on this PC.** An MSI read took 2.6 s while an
+Acer's capabilities string was being read; with an Acer read in a loop, MSI reads took 90 ms instead of 62. So in
+1.0.5 a key press in the first ~6 s after Switchboard started (or after an update) waited for the capabilities reads,
+and the quick re-read on window activation (all three monitors, the two hidden Acers included) could land in front of a
+click's switch. Details in [ddc-ci-notes.md](ddc-ci-notes.md#known-problems).
+
+**1.0.6 changes:**
+
+- [x] The command goes out before anything else; the window, the mouse and the log come after.
+- [x] The highlight moves to the new input at once. A confirmed switch shows no status line (Narrator still hears it);
+      problems and unconfirmed switches still do. A spinner appears only if the monitor hasn't confirmed after 400 ms.
+- [x] Read-back starts right after the command and repeats every 100 ms for up to 2 s (was: first read after 150 ms).
+      A newer switch on the same monitor ends the older one's read-back instead of having it report "didn't switch".
+- [x] Capabilities strings are kept in `capabilities.json`, so a start doesn't read them again (checked with a
+      `--data-dir --no-switch` copy: the second start read none). Failed ones are retried only on Refresh or a display
+      change, not on every window activation.
+- [x] The quick re-read on window activation waits 300 ms, skips hidden monitors, and doesn't run within 1 s of a
+      switch.
+- [x] **Toggle:** the next-input shortcut skips hidden monitors and ones with one input shown, so on the owner's PC it
+      flips the MSI between PC and PS5. Set to **Alt+End** on the MSI in the owner's settings.json (19:09; 1.0.5 took
+      it too). It re-reads the input first (about 60 ms) only when the last reading is over 30 s old, in case the MSI
+      changed input by itself.
+- [x] "Already showing" is checked with the monitor (one read) before saying so, instead of trusting memory.
+- [x] **Mouse:** leaving the PC's input with the mouse on that monitor moves it to the middle of Switchboard's window
+      (else another screen); switching back puts it where it was. Settings › General › *Move the mouse out of the way*
+      (on by default; `leaveMouseAlone` in settings.json).
+- [x] 81 unit tests (8 new: toggle monitor choice, toggle direction, parking spot). Build has no warnings.
+- [ ] **Owner test with 1.0.6** (Refresh, then Update in the installed app; PS5 on, mouse on the MSI):
+  1. Alt+End: PS5 shows, the mouse jumps to Switchboard's window. Alt+End again: PC back, mouse back where it was.
+  2. Alt+PageUp, then Alt+PageDown: same, without the toggle.
+  3. Click PS5 and PC in the window: the highlight moves at once, no status message.
+  4. Press Alt+End twice quickly: it should end up back on the PC with no "didn't switch" message.
+  5. With a game in front on the MSI: Alt+End both ways.
+  6. Then read the times in the log (`command out N ms after ...`, `confirmed N ms after the command`).
+
+| Test | Command out after key | Confirmed after command | Picture | Mouse |
+|---|---|---|---|---|
+| (to fill in) | | | | |
+
 **Done when:** you'd be happy for a friend to install it. Left: the owner checks above, and the auto-update decision.
 
 ---

@@ -24,15 +24,16 @@ public sealed class AppController : ISwitchboardActions, IAsyncDisposable
 
     private readonly DispatcherQueue _dispatcher;
     private readonly StartupOptions _options;
-    private readonly MonitorService _monitors = new();
+    private readonly MonitorService _monitors = new() { CapabilitiesFile = Path.Combine(AppPaths.DataDirectory, "capabilities.json") };
     private readonly SettingsStore _store = new(AppPaths.SettingsFile);
     private readonly StartupRegistration _startup = new();
     private readonly Updater _updater = new();
-    private readonly Dictionary<int, Func<Task>> _hotkeyActions = new();
+    private readonly Dictionary<int, Func<long, Task>> _hotkeyActions = new();
     private readonly Dictionary<string, string> _shortcutProblems = new();
     private readonly DispatcherQueueTimer _displayChangeTimer;
     private readonly DispatcherQueueTimer _settingsReloadTimer;
     private readonly DispatcherQueueTimer _statusClearTimer;
+    private readonly DispatcherQueueTimer _activationRefreshTimer;
     private HostWindow? _host;
     private MainWindow? _window;
     private SettingsWindow? _settingsWindow;
@@ -75,6 +76,26 @@ public sealed class AppController : ISwitchboardActions, IAsyncDisposable
 
     /// <summary>When Windows last reported a display change (UTC).</summary>
     private DateTime _lastDisplayChange = DateTime.MinValue;
+
+    /// <summary>
+    /// Per monitor: the input a switch is on its way to. The window shows it as current straight away, and keeps doing
+    /// so until the monitor confirms it or the switch fails.
+    /// </summary>
+    private readonly Dictionary<string, uint> _pendingSwitch = new(StringComparer.OrdinalIgnoreCase);
+
+    /// <summary>Per monitor: where the mouse was before Switchboard moved it off that monitor (physical pixels).</summary>
+    private readonly Dictionary<string, (int X, int Y)> _parkedMouse = new(StringComparer.OrdinalIgnoreCase);
+
+    private DateTime _lastSwitchStarted = DateTime.MinValue;
+
+    /// <summary>
+    /// How long the toggle trusts a remembered input. An older one is checked first (one read, about 60 ms), because
+    /// the monitor may have changed input by itself (its own buttons, or moving on when a device goes quiet).
+    /// </summary>
+    private static readonly TimeSpan TrustReadingFor = TimeSpan.FromSeconds(30);
+
+    /// <summary>A switch that takes longer than this shows a spinner on its row. Most are confirmed well before.</summary>
+    private static readonly TimeSpan ShowBusyAfter = TimeSpan.FromMilliseconds(400);
     private int _hotkeySuspensions;
 
     public AppController(DispatcherQueue dispatcher, StartupOptions options)
@@ -93,6 +114,12 @@ public sealed class AppController : ISwitchboardActions, IAsyncDisposable
         {
             ViewModel.Status = StandingProblem() ?? "";
             _window?.FitToContent();
+        });
+        // Coming back to the window re-reads the inputs, but not while that would hold up a switch: a click on an
+        // input usually comes right after the click that activated the window.
+        _activationRefreshTimer = MakeTimer(TimeSpan.FromMilliseconds(300), () =>
+        {
+            if (_pendingSwitch.Count == 0 && DateTime.UtcNow - _lastSwitchStarted > TimeSpan.FromSeconds(1)) _ = RefreshAsync(enumerate: false);
         });
         _monitors.Changed += () => _dispatcher.TryEnqueue(OnMonitorsChanged);
     }
@@ -127,7 +154,11 @@ public sealed class AppController : ISwitchboardActions, IAsyncDisposable
 
         // Hidden helper window for global hotkeys, display changes and resume from sleep.
         _host = new HostWindow();
-        _host.HotkeyPressed += id => { if (_hotkeyActions.TryGetValue(id, out var action)) _ = action(); };
+        _host.HotkeyPressed += id =>
+        {
+            long pressedAt = Stopwatch.GetTimestamp();
+            if (_hotkeyActions.TryGetValue(id, out var action)) _ = action(pressedAt);
+        };
         _host.DisplaysChanged += () =>
         {
             _lastDisplayChange = DateTime.UtcNow;
@@ -201,7 +232,9 @@ public sealed class AppController : ISwitchboardActions, IAsyncDisposable
     /// <summary>Re-reads current inputs when you come back to the window, in case they changed from the monitor's own buttons.</summary>
     public void OnWindowActivated()
     {
-        if (DateTime.UtcNow - _lastInputRefresh > TimeSpan.FromSeconds(3)) _ = RefreshAsync(enumerate: false);
+        if (DateTime.UtcNow - _lastInputRefresh <= TimeSpan.FromSeconds(3)) return;
+        _activationRefreshTimer.Stop();
+        _activationRefreshTimer.Start();
     }
 
     public async Task RefreshAsync(bool enumerate)
@@ -210,7 +243,9 @@ public sealed class AppController : ISwitchboardActions, IAsyncDisposable
         try
         {
             _lastInputRefresh = DateTime.UtcNow;
-            await _monitors.RefreshAsync(enumerate);
+            // Taken here: the refresh runs on another thread, and settings belong to this one.
+            var hidden = _settings.Monitors.Where(m => m.Value.Hidden).Select(m => m.Key).ToHashSet(StringComparer.OrdinalIgnoreCase);
+            await _monitors.RefreshAsync(enumerate, hidden.Contains);
         }
         catch (Exception ex)
         {
@@ -282,13 +317,18 @@ public sealed class AppController : ISwitchboardActions, IAsyncDisposable
         }
     }
 
-    public async Task SwitchAsync(string monitorId, uint value)
+    /// <summary>A click on an input in the window.</summary>
+    public Task SwitchAsync(string monitorId, uint value) => SwitchAsync(monitorId, value, "click", Stopwatch.GetTimestamp());
+
+    /// <param name="trigger">"click" or the shortcut, for the log.</param>
+    /// <param name="requestedAt"><see cref="Stopwatch.GetTimestamp"/> at the click or key press.</param>
+    private async Task SwitchAsync(string monitorId, uint value, string trigger, long requestedAt)
     {
         _settings.Monitors.TryGetValue(monitorId, out var settings);
         if (_options.NoSwitch || !_settleUntil.TryGetValue(monitorId, out var until) || DateTime.UtcNow >= until
             || (InputLayout.NeedsScreensOff(settings, value) && DateTime.UtcNow >= until - ScreensOffSettle + ScreensOffRestart))
         {
-            await SwitchNowAsync(monitorId, value);
+            await SwitchNowAsync(monitorId, value, trigger, requestedAt);
             return;
         }
 
@@ -367,10 +407,10 @@ public sealed class AppController : ISwitchboardActions, IAsyncDisposable
             RebuildViewModel();
             return;
         }
-        await SwitchNowAsync(monitorId, value);
+        await SwitchNowAsync(monitorId, value, trigger, requestedAt);
     }
 
-    private async Task SwitchNowAsync(string monitorId, uint value)
+    private async Task SwitchNowAsync(string monitorId, uint value, string trigger, long requestedAt)
     {
         var vm = FindInput(monitorId, value);
         string monitorName = MonitorName(monitorId);
@@ -381,45 +421,147 @@ public sealed class AppController : ISwitchboardActions, IAsyncDisposable
             return;
         }
         _settings.Monitors.TryGetValue(monitorId, out var ms);
-        bool screensOff = InputLayout.NeedsScreensOff(ms, value);
-        // A monitor that needs the screens-off trick also reads back unreliably, so don't trust "already showing" there.
-        if (vm is { IsCurrent: true } && ms?.BlankScreensWhenLeaving is null)
+        if (_screensOffSwitchRunning) return;
+        if (InputLayout.NeedsScreensOff(ms, value))
         {
-            SetStatus($"{monitorName} is already showing {inputName}.");
-            return;
-        }
-        if (vm is { IsBusy: true } || _screensOffSwitchRunning) return;
-
-        if (vm is not null) vm.IsBusy = true;
-        try
-        {
-            if (screensOff)
+            if (vm is { IsBusy: true }) return;
+            MoveMouseForSwitch(monitorId, value, ms);
+            if (vm is not null) vm.IsBusy = true;
+            try
             {
                 await SwitchWithScreensOffAsync(monitorId, value, monitorName, inputName);
+            }
+            catch (Exception ex)
+            {
+                Log.Error("Switching failed", ex);
+                SetStatus($"Something went wrong switching {monitorName}. Try again.");
+            }
+            finally
+            {
+                if (FindInput(monitorId, value) is { } current) current.IsBusy = false;
+                if (vm is not null) vm.IsBusy = false;
+                RebuildViewModel();
+            }
+            return;
+        }
+
+        bool pending = _pendingSwitch.TryGetValue(monitorId, out uint pendingTarget);
+        if (pending && pendingTarget == value) return;
+
+        // "Already showing" from memory can be out of date (the monitor's own buttons, or it moving on by itself when
+        // a device goes quiet), so ask the monitor before saying so. Only on this path: a real switch doesn't wait for a
+        // read. Not for a monitor that needs the screens-off trick: it reads back unreliably.
+        uint? remembered = _monitors.Monitors.FirstOrDefault(m => m.Id == monitorId)?.CurrentInput;
+        if (!pending && remembered is uint r && InputCatalog.Matches(r, value) && ms?.BlankScreensWhenLeaving is null)
+        {
+            uint? now = await _monitors.ReadCurrentInputAsync(monitorId);
+            if (now is null || InputCatalog.Matches(now.Value, value))
+            {
+                // No answer: trust memory rather than send a command that may make the screen blink.
+                SetStatus($"{monitorName} is already showing {inputName}.");
                 return;
             }
+            Log.Info($"{monitorName}: shows {InputCatalog.FormatValue(now.Value)}, not {InputCatalog.FormatValue(value)} as remembered; switching");
+            if (_pendingSwitch.ContainsKey(monitorId)) return; // another switch started during the read
+        }
 
-            var outcome = await _monitors.SwitchAsync(monitorId, value);
-            SetStatus(outcome.Status switch
-            {
-                SwitchStatus.Confirmed => $"{monitorName} switched to {inputName}.",
-                SwitchStatus.Unconfirmed => $"Switch sent to {monitorName}. It didn't confirm, so check the screen.",
-                SwitchStatus.StillOnOtherInput => $"{monitorName} didn't switch. It still reports {DescribeInput(monitorId, outcome.ReportedInput)}.",
-                SwitchStatus.MonitorGone => $"{monitorName} isn't connected any more. Try Refresh.",
-                _ => $"{monitorName} didn't respond. Check that DDC/CI is on in its menu, then try again.",
-            });
+        _pendingSwitch[monitorId] = value;
+        _lastSwitchStarted = DateTime.UtcNow;
+        // The command goes out first: SwitchAsync has handed it to the monitor's queue by the time it returns its task.
+        // The window, the mouse and the log all come after.
+        var switching = _monitors.SwitchAsync(monitorId, value, trigger, requestedAt);
+        var mouse = MoveMouseForSwitch(monitorId, value, ms);
+        foreach (var row in InputsOf(monitorId)) row.IsBusy = false;
+        if (ViewModel.Status.Length > 0) ViewModel.Status = StandingProblem() ?? "";
+        RebuildViewModel();
+        _ = ShowBusyIfSlowAsync(monitorId, value);
+
+        SwitchOutcome outcome;
+        try
+        {
+            outcome = await switching;
         }
         catch (Exception ex)
         {
             Log.Error("Switching failed", ex);
-            SetStatus($"Something went wrong switching {monitorName}. Try again.");
+            outcome = new SwitchOutcome(SwitchStatus.Failed, null);
         }
-        finally
+
+        // A newer switch on this monitor took over; it updates the window.
+        if (outcome.Status == SwitchStatus.Superseded || !_pendingSwitch.TryGetValue(monitorId, out uint stillPending) || stillPending != value) return;
+        _pendingSwitch.Remove(monitorId);
+        if (FindInput(monitorId, value) is { } done) done.IsBusy = false;
+        if (outcome.Status is SwitchStatus.Failed or SwitchStatus.MonitorGone) PutMouseBack(mouse);
+        RebuildViewModel();
+
+        if (outcome.Status == SwitchStatus.Confirmed)
         {
-            if (FindInput(monitorId, value) is { } current) current.IsBusy = false;
-            if (vm is not null) vm.IsBusy = false;
-            RebuildViewModel();
+            // The highlight has already moved there: no status line for news the window shows. Narrator still hears it.
+            _window?.Announce($"{monitorName} switched to {inputName}.");
+            return;
         }
+        SetStatus(outcome.Status switch
+        {
+            SwitchStatus.Unconfirmed => $"Switch sent to {monitorName}. It didn't confirm, so check the screen.",
+            SwitchStatus.StillOnOtherInput => $"{monitorName} didn't switch. It still reports {DescribeInput(monitorId, outcome.ReportedInput)}.",
+            SwitchStatus.MonitorGone => $"{monitorName} isn't connected any more. Try Refresh.",
+            _ => $"{monitorName} didn't respond. Check that DDC/CI is on in its menu, then try again.",
+        });
+    }
+
+    private async Task ShowBusyIfSlowAsync(string monitorId, uint value)
+    {
+        await Task.Delay(ShowBusyAfter);
+        if (_pendingSwitch.TryGetValue(monitorId, out uint target) && target == value && FindInput(monitorId, value) is { } row)
+            row.IsBusy = true;
+    }
+
+    // ---- The mouse ----
+
+    private sealed record MouseMove(string MonitorId, int FromX, int FromY, bool Parked);
+
+    /// <summary>
+    /// Leaving this PC's input with the mouse on that monitor: moves the mouse to Switchboard's window (or another
+    /// screen), since Windows still counts the monitor as there and the pointer would be lost on it. Coming back to this
+    /// PC's input: puts it back where it was. Does nothing for monitors whose PC input isn't known.
+    /// </summary>
+    private MouseMove? MoveMouseForSwitch(string monitorId, uint target, MonitorSettings? ms)
+    {
+        try
+        {
+            if (_settings.LeaveMouseAlone || ms?.PcInput is not uint pcInput) return null;
+            var snapshots = _monitors.Monitors;
+            var monitor = snapshots.FirstOrDefault(m => m.Id == monitorId);
+            if (monitor is null || !Win32.GetCursorPos(out var at)) return null;
+            bool onMonitor = MouseParking.Contains(monitor.Bounds, (at.X, at.Y));
+
+            if (InputCatalog.Matches(target, pcInput))
+            {
+                if (!_parkedMouse.Remove(monitorId, out var saved) || onMonitor || !MouseParking.Contains(monitor.Bounds, saved)) return null;
+                Win32.SetCursorPos(saved.X, saved.Y);
+                return new MouseMove(monitorId, at.X, at.Y, Parked: false);
+            }
+
+            if (!onMonitor) return null;
+            var spot = MouseParking.Spot(monitor.Bounds, snapshots.Select(m => (m.Bounds, m.IsPrimary)).ToList(), _window?.ScreenBounds);
+            if (spot is not { } to) return null;
+            _parkedMouse[monitorId] = (at.X, at.Y);
+            Win32.SetCursorPos(to.X, to.Y);
+            return new MouseMove(monitorId, at.X, at.Y, Parked: true);
+        }
+        catch (Exception ex)
+        {
+            Log.Warn($"Moving the mouse failed: {ex.Message}");
+            return null;
+        }
+    }
+
+    /// <summary>After a switch that didn't happen: the mouse goes back on the monitor it was moved off.</summary>
+    private void PutMouseBack(MouseMove? move)
+    {
+        if (move is not { Parked: true }) return;
+        _parkedMouse.Remove(move.MonitorId);
+        Win32.SetCursorPos(move.FromX, move.FromY);
     }
 
     /// <summary>
@@ -708,38 +850,59 @@ public sealed class AppController : ISwitchboardActions, IAsyncDisposable
                 _shortcutProblems[key] = "Another app already uses this shortcut, so it doesn't work. Pick another.";
                 continue;
             }
-            _hotkeyActions[id++] = ActionFor(key);
+            _hotkeyActions[id++] = ActionFor(key, hotkey.ToString());
         }
 
         if (_shortcutProblems.Count > 0)
             Log.Warn("Shortcut problems: " + string.Join(" ", _shortcutProblems.Select(p => $"[{p.Key}] {p.Value}")));
     }
 
-    private Func<Task> ActionFor(string key)
+    private Func<long, Task> ActionFor(string key, string shortcut)
     {
-        if (key == ShortcutSlots.Show) return () => { ShowWindow(); return Task.CompletedTask; };
-        if (key == ShortcutSlots.Cycle) return CycleAsync;
+        if (key == ShortcutSlots.Show) return _ => { ShowWindow(); return Task.CompletedTask; };
+        if (key == ShortcutSlots.Cycle) return pressedAt => CycleAsync(shortcut, pressedAt);
         ShortcutSlots.TryParseInputKey(key, out string monitorId, out uint value);
-        return () => SwitchAsync(monitorId, value);
+        return pressedAt => SwitchAsync(monitorId, value, shortcut, pressedAt);
     }
 
-    private async Task CycleAsync()
+    /// <summary>The next-input shortcut. With two inputs shown (the PC and the PS5) it flips between them.</summary>
+    private async Task CycleAsync(string shortcut, long pressedAt)
     {
-        var snapshots = _monitors.Monitors;
-        MonitorSnapshot? target = null;
+        var monitors = Monitors;
+        MonitorSnapshot? target;
         if (!string.IsNullOrWhiteSpace(_settings.CycleMonitor))
-            target = snapshots.FirstOrDefault(m => string.Equals(m.Id, _settings.CycleMonitor, StringComparison.OrdinalIgnoreCase));
-        target ??= snapshots.FirstOrDefault(m => m.IsPrimary && m.Health == MonitorHealth.Responding)
-            ?? snapshots.FirstOrDefault(m => m.Health == MonitorHealth.Responding);
-        if (target is null)
         {
-            SetStatus("No monitor is answering, so the cycle shortcut has nothing to switch.");
-            return;
+            target = monitors.FirstOrDefault(m => string.Equals(m.Id, _settings.CycleMonitor, StringComparison.OrdinalIgnoreCase));
+            if (target is null)
+            {
+                SetStatus($"{MonitorName(_settings.CycleMonitor)} isn't connected, so the next-input shortcut has nothing to switch.");
+                return;
+            }
+        }
+        else
+        {
+            target = InputLayout.PickCycleMonitor(monitors, _settings);
+            if (target is null)
+            {
+                SetStatus("No monitor shown here has two inputs to switch between, so the next-input shortcut has nothing to do.");
+                return;
+            }
         }
 
         _settings.Monitors.TryGetValue(target.Id, out var ms);
-        var next = InputLayout.Next(InputLayout.Build(target, ms).Where(i => !i.Hidden).ToList());
-        if (next is not null) await SwitchAsync(target.Id, next.Value);
+        uint? current = _pendingSwitch.TryGetValue(target.Id, out uint pending) ? pending : target.CurrentInput;
+        // A reading that's a while old is checked first (about 60 ms), so the toggle doesn't send the input that's
+        // already showing when the monitor changed input by itself.
+        if (!_pendingSwitch.ContainsKey(target.Id) && ms?.BlankScreensWhenLeaving is null && DateTime.UtcNow - target.InputReadUtc > TrustReadingFor)
+        {
+            uint? read = await _monitors.ReadCurrentInputAsync(target.Id);
+            if (read is uint now && now != current)
+                Log.Info($"{target.Name}: shows {InputCatalog.FormatValue(now)}, not {(current is uint c ? InputCatalog.FormatValue(c) : "an unknown input")} as remembered");
+            current = read ?? current;
+        }
+        var visible = InputLayout.Build(target with { CurrentInput = current }, ms).Where(i => !i.Hidden).ToList();
+        var next = InputLayout.Next(visible);
+        if (next is not null) await SwitchAsync(target.Id, next.Value, shortcut, pressedAt);
     }
 
     // ---- Keeping everything in step ----
@@ -765,8 +928,10 @@ public sealed class AppController : ISwitchboardActions, IAsyncDisposable
         int hiddenCount = 0;
         var shown = new List<(MonitorSnapshot Snapshot, MonitorSettings? Settings, IReadOnlyList<DisplayInput> Inputs)>();
 
-        foreach (var m in Monitors)
+        foreach (var monitor in Monitors)
         {
+            // A switch on its way shows as done; the monitor confirms it a moment later.
+            var m = _pendingSwitch.TryGetValue(monitor.Id, out uint target) ? monitor with { CurrentInput = target } : monitor;
             _settings.Monitors.TryGetValue(m.Id, out var ms);
             var inputs = InputLayout.Build(m, ms);
             if (ms?.Hidden == true)
@@ -894,6 +1059,9 @@ public sealed class AppController : ISwitchboardActions, IAsyncDisposable
         timer.Tick += (_, _) => action();
         return timer;
     }
+
+    private IEnumerable<InputViewModel> InputsOf(string monitorId) =>
+        ViewModel.Monitors.FirstOrDefault(m => m.Id == monitorId)?.Inputs ?? Enumerable.Empty<InputViewModel>();
 
     private InputViewModel? FindInput(string monitorId, uint value) =>
         ViewModel.Monitors.FirstOrDefault(m => m.Id == monitorId)?.Inputs.FirstOrDefault(i => i.Value == value);
