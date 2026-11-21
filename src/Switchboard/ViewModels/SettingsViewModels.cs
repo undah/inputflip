@@ -174,10 +174,10 @@ public sealed class SettingsViewModel : ObservableObject
             {
                 CycleMonitorOptions.Clear();
                 foreach (var o in options) CycleMonitorOptions.Add(o);
+                _cycleMonitorIndex = -1; // make the ComboBox pick it up again after its items changed
             }
             _cycleMonitorIds = optionIds;
             int cycleIndex = optionIds.FindIndex(id => string.Equals(id, string.IsNullOrWhiteSpace(settings.CycleMonitor) ? null : settings.CycleMonitor, StringComparison.OrdinalIgnoreCase));
-            _cycleMonitorIndex = -1; // make the ComboBox pick it up again after its items changed
             Set(ref _cycleMonitorIndex, Math.Max(0, cycleIndex), nameof(CycleMonitorIndex));
 
             SyncList(InputShortcutGroups, Monitors.Where(m => m.IsConnected).ToList(), (g, m) => g.MonitorId == m.Id,
