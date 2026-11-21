@@ -15,13 +15,13 @@
                     <VisualState x:Name="Normal" />
                     <VisualState x:Name="PointerOver">
                         <VisualState.Setters>
-                            <Setter Target="Fill.Opacity" Value="0.9" />
+                            <Setter Target="Fill.Opacity" Value="0.85" />
                             <Setter Target="Hover.Background" Value="{ThemeResource SubtleFillColorSecondaryBrush}" />
                         </VisualState.Setters>
                     </VisualState>
                     <VisualState x:Name="Pressed">
                         <VisualState.Setters>
-                            <Setter Target="Fill.Opacity" Value="0.8" />
+                            <Setter Target="Fill.Opacity" Value="0.7" />
                             <Setter Target="Hover.Background" Value="{ThemeResource SubtleFillColorTertiaryBrush}" />
                             <Setter Target="ContentPresenter.Opacity" Value="0.8" />
                         </VisualState.Setters>
