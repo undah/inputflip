@@ -72,6 +72,12 @@ internal static class Win32
     [DllImport("user32.dll")]
     public static extern bool SetCursorPos(int x, int y);
 
+    [DllImport("user32.dll")]
+    private static extern IntPtr MonitorFromPoint(POINT point, uint flags);
+
+    /// <summary>Whether a point (physical pixels) is on any screen Windows has right now.</summary>
+    public static bool IsOnAScreen(int x, int y) => MonitorFromPoint(new POINT { X = x, Y = y }, 0 /* MONITOR_DEFAULTTONULL */) != IntPtr.Zero;
+
     [DllImport("kernel32.dll", CharSet = CharSet.Unicode)]
     public static extern IntPtr GetModuleHandle(string? moduleName);
 }

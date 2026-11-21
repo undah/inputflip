@@ -57,9 +57,32 @@ Python alternative for quick tests: the `monitorcontrol` package. Command-line a
 
 ## The MSI over HDMI (2026-11-21)
 
-- Switches both ways and confirms on the first read-back (150 ms after the command in 1.0.5).
-- **It keeps the PC's link up while it shows the PS5.** Windows reports no display change when it switches either way, so the desktop still extends onto it and the mouse can get lost on a screen showing the PS5. Since 1.0.6 Switchboard moves the mouse to its window when the MSI leaves the PC's input with the mouse on it, and back when it returns.
-- Picture back in under a second in both directions (owner's estimate, PS5 on).
+Measured with read-only scripts (each display's vertical blank from the graphics card, and the display targets
+`QueryDisplayConfig` reports, every 20 ms) while the owner switched, PS5 on, Switchboard 1.0.6:
+
+- **The command side is fast:** the command goes out 0 to 8 ms after the key and the MSI reports the new input
+  115 to 144 ms after it, on the first read (sometimes the first read is garbled and the second, 300 ms after, confirms).
+- **The MSI unplugs itself from the input it switches to.** On the graphics card's real HDMI port (since 19:50), about
+  0.5 s after a switch *to the PC's input* Windows loses the MSI for about 0.8 s and then adds it back as the main
+  display, and the graphics card resets **all three screens** (no picture for 250 ms, then 470 ms, on each). Each
+  monitor then takes a few seconds to show a picture again: the owner sees about **5 s of black on all three**.
+  Switching *away* to the PS5 doesn't touch the PC side at all; the PS5's picture comes after **about 6 s**, most
+  likely because the PS5 also sees an unplug and replug and starts its HDMI setup over.
+- **The MSI's own joystick (Input Source) does the same**, about as slowly, and unplugs from the PC in *both* directions
+  (19:53:37 and 19:53:57). So it's how this monitor changes input, not something DDC/CI adds; DDC/CI is if anything
+  slightly better (no disturbance on the way to the PS5).
+- Through the DP-to-HDMI cable it used before (19:32 to 19:41), Windows noticed nothing (no target change, no gap in any
+  screen's vertical blank), yet the owner still saw about 5 s of black on all three and 6 to 7 s to the PS5.
+- So the 5 to 6 s can't be shortened from the PC with DDC/CI. What's left is hardware that keeps the hot-plug signal
+  up on each input (an HDMI EDID emulator, or a switch with EDID emulation in front of the monitor), untested here; for
+  the PC's input it would have to pass DDC/CI through, or Switchboard loses control of the MSI.
+- Consequences for the app: Windows moves the mouse onto another screen while the MSI is gone, so 1.0.7 puts it back
+  once the MSI returns; and the MSI's monitor handle dies with the unplug, so a switch in the 1.5 s before Switchboard
+  finds the monitors again fails, and 1.0.7 finds them at once and retries.
+- **Port and refresh rate:** the owner's RTX 4070 has one HDMI port and three DisplayPort ports. Through a DP-to-HDMI
+  cable, Windows reports the connection as DVI (`outputTechnology` 4; NVIDIA exposes each DisplayPort port as a
+  DisplayPort target and a DVI target) and offers 1440p at 60 Hz at most. On the real HDMI port the MSI reports HDMI
+  (`5`) and offers 59 to 144 Hz.
 
 ## Which inputs have something connected?
 

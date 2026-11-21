@@ -81,6 +81,11 @@ Check `docs/plan.md`: ticked boxes are done, the "Results" table in stage 1 hold
   reading `%LOCALAPPDATA%\Switchboard` from a session may show the sandboxed copy, not the real one. To read the real
   folder from a session, go around the redirection: `\\localhost\C$\Users\<user>\AppData\Local\Switchboard`. Test
   copies should use `--data-dir` anyway.
+- **The owner's hardware (2026-11-21, 19:50):** RTX 4070 with one HDMI port and three DisplayPort ports. The MSI is on the
+  HDMI port at 1440p 144 Hz (through a DP-to-HDMI cable Windows calls it DVI and caps it at 60 Hz). Windows lays out:
+  Acer `0673` left, MSI (main) middle, Acer `06F0` right. **The MSI unplugs itself from whichever input it switches to**,
+  with the joystick too: about 6 s to the PS5 picture, and on the way back Windows loses the main display for 0.8 s and
+  every screen goes black for about 5 s. DDC/CI can't change that (docs/ddc-ci-notes.md); don't chase it in the app.
 - **Screens-off tests (`scripts/quiet-link-test.ps1`) go in Windows PowerShell from the Start menu, not the Claude
   terminal panel.** On 2026-11-21 the MSI's screens-off switch failed 5 rounds in 7 from the Claude terminal and 0 in
   8 from Windows PowerShell, with the same timings. Cause unknown. The script writes `logs\quiet-link-test.log` in the

@@ -153,8 +153,9 @@ So both directions work over DisplayPort, keeping 165 Hz:
 **Done (2026-11-21, 18:40 to 18:50).** What was actually set up:
 
 - Cable: BENFEI DisplayPort-to-HDMI, 1.8 m, "4K@30Hz max" with a converter chip. On Acer `06F0` (VG240Y), from a graphics-card DisplayPort port. Not on the MSI: too slow for 1440p at 144 Hz (about 60 Hz at most), and a converter chip may not pass DDC/CI. Acer `06F0` still answered DDC/CI through it in discovery (one garbled read in the app).
-- The MSI on the freed graphics-card HDMI port, into the **MSI's HDMI 2** (PC, `12`); the PS5 stayed on HDMI 1 (`11`). The MSI's DisplayPort cable unplugged.
+- The MSI on the freed graphics-card "HDMI port", into the **MSI's HDMI 2** (PC, `12`); the PS5 stayed on HDMI 1 (`11`). The MSI's DisplayPort cable unplugged.
 - Windows reports the MSI's link as DVI (`outputTechnology` 4), like that port did for the Acer before; `PcInputDetector` counts DVI as HDMI.
+- **Correction (2026-11-21, 19:45):** that wasn't an HDMI port. The RTX 4070 has one HDMI port and three DisplayPort ports; Acer `06F0`, and then the MSI, were on a DisplayPort port through a DP-to-HDMI cable, which Windows reports as DVI and which limits the MSI to 60 Hz. At 19:50 the owner swapped the monitor ends of the MSI's and Acer `0673`'s cables: the MSI is now on the real HDMI port at 144 Hz, Acer `0673` on the DP-to-HDMI cable.
 - Discovery (reads only): all three monitors answered on the first try; the MSI's capabilities string came through over HDMI in 2.6 s, current input `12`.
 - Owner's settings.json, MSI entry, edited by hand: `blankScreensWhenLeaving` removed, `pcInput` `0x12`, HDMI 2 shown and first with Alt+PageDown (moved from DisplayPort 1), both DisplayPort inputs hidden.
 - Test from the app (1.0.5, PS5 on): both directions confirmed in 150 ms (results table above).
@@ -356,9 +357,27 @@ click's switch. Details in [ddc-ci-notes.md](ddc-ci-notes.md#known-problems).
   5. With a game in front on the MSI: Alt+End both ways.
   6. Then read the times in the log (`command out N ms after ...`, `confirmed N ms after the command`).
 
-| Test | Command out after key | Confirmed after command | Picture | Mouse |
-|---|---|---|---|---|
-| (to fill in) | | | | |
+**Owner tests with 1.0.6 (19:32 to 19:54, PS5 on):**
+
+| Time | How | Command out after key | Confirmed after command | Picture (owner) | PC side (recorder) |
+|---|---|---|---|---|---|
+| 19:32:04 to 19:32:39 | toggle, MSI on the DP-to-HDMI cable | 0 to 8 ms | 115 to 124 ms (one 292 ms: first read garbled) | | |
+| 19:37:08 to 19:37:56 | toggle, same cable | 0 to 71 ms | 131 to 300 ms | PS5 after 6 to 7 s; all three screens black about 5 s on the way back | nothing: no display change, no gap in any screen's picture |
+| 19:52:56, 19:53:01 | toggle, MSI on the real HDMI port at 144 Hz | 0 ms | 144 ms, 129 ms | PS5 after about 6 s; black about 5 s on the way back | on the way back, the MSI unplugged itself 0.5 s after the command for 0.8 s; all three screens reset (250 and 470 ms without picture) |
+| 19:53:37, 19:53:57 | the MSI's joystick | | | about the same | the MSI unplugged itself in both directions, same resets |
+
+The toggle key: the owner moved it to Ctrl+Tab, then Alt+Q (both work; Ctrl+Tab took tab switching away from every
+app). The mouse move wasn't checked by eye.
+
+**What this means:** Switchboard's part is now about 0.13 s from key to confirmed, against about 0.29 s in 1.0.5, and
+the highlight moves at the key press. The 5 to 6 s the owner sees is the MSI's input change itself: it unplugs itself
+from the input it switches to, so the PS5 starts its HDMI setup over and Windows resets every screen. Its own joystick
+does the same. Details in [ddc-ci-notes.md](ddc-ci-notes.md#the-msi-over-hdmi-2026-11-21). Not fixable through
+DDC/CI; the remaining lever is hardware that holds the hot-plug signal (untested, and it must pass DDC/CI through).
+
+**1.0.7 (19:57):** the replug moved the mouse onto an Acer after 1.0.6 had put it back, and killed the MSI's monitor
+handle for about 3 s. Now the mouse goes back again when the MSI returns, and a switch that fails within 10 s of a display
+change finds the monitors again and retries once. Mouse moves are logged. Not yet tested by the owner.
 
 **Done when:** you'd be happy for a friend to install it. Left: the owner checks above, and the auto-update decision.
 

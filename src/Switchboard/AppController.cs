@@ -162,6 +162,7 @@ public sealed class AppController : ISwitchboardActions, IAsyncDisposable
         _host.DisplaysChanged += () =>
         {
             _lastDisplayChange = DateTime.UtcNow;
+            PutMouseBackAfterReplug();
             RestartDisplayTimer();
         };
         _host.Resumed += RestartDisplayTimer;
@@ -487,6 +488,26 @@ public sealed class AppController : ISwitchboardActions, IAsyncDisposable
             outcome = new SwitchOutcome(SwitchStatus.Failed, null);
         }
 
+        // Right after a display change the monitor's handle may be dead (Windows destroys it when the monitor unplugs
+        // itself, as the MSI does for a moment after switching back to the PC), and the monitors are only found again
+        // 1.5 s after the last change. A switch in that gap finds them now and tries once more.
+        if (outcome.Status is SwitchStatus.Failed or SwitchStatus.MonitorGone
+            && DateTime.UtcNow - _lastDisplayChange < TimeSpan.FromSeconds(10)
+            && _pendingSwitch.TryGetValue(monitorId, out uint retrying) && retrying == value)
+        {
+            Log.Info($"{monitorName}: switch failed {(DateTime.UtcNow - _lastDisplayChange).TotalSeconds:0.0} s after a display change; finding monitors again and retrying");
+            try
+            {
+                await RefreshAsync(enumerate: true);
+                if (_pendingSwitch.TryGetValue(monitorId, out retrying) && retrying == value)
+                    outcome = await _monitors.SwitchAsync(monitorId, value, trigger + ", retry", requestedAt);
+            }
+            catch (Exception ex)
+            {
+                Log.Error("Switching failed on the retry", ex);
+            }
+        }
+
         // A newer switch on this monitor took over; it updates the window.
         if (outcome.Status == SwitchStatus.Superseded || !_pendingSwitch.TryGetValue(monitorId, out uint stillPending) || stillPending != value) return;
         _pendingSwitch.Remove(monitorId);
@@ -539,6 +560,8 @@ public sealed class AppController : ISwitchboardActions, IAsyncDisposable
             {
                 if (!_parkedMouse.Remove(monitorId, out var saved) || onMonitor || !MouseParking.Contains(monitor.Bounds, saved)) return null;
                 Win32.SetCursorPos(saved.X, saved.Y);
+                _mouseAfterReplug = (monitor.Name, monitor.Bounds, saved.X, saved.Y, DateTime.UtcNow + MouseAfterReplugFor);
+                Log.Info($"{monitor.Name}: mouse back at {saved.X},{saved.Y}");
                 return new MouseMove(monitorId, at.X, at.Y, Parked: false);
             }
 
@@ -546,7 +569,9 @@ public sealed class AppController : ISwitchboardActions, IAsyncDisposable
             var spot = MouseParking.Spot(monitor.Bounds, snapshots.Select(m => (m.Bounds, m.IsPrimary)).ToList(), _window?.ScreenBounds);
             if (spot is not { } to) return null;
             _parkedMouse[monitorId] = (at.X, at.Y);
+            _mouseAfterReplug = null;
             Win32.SetCursorPos(to.X, to.Y);
+            Log.Info($"{monitor.Name}: mouse moved off it, from {at.X},{at.Y} to {to.X},{to.Y}");
             return new MouseMove(monitorId, at.X, at.Y, Parked: true);
         }
         catch (Exception ex)
@@ -562,6 +587,31 @@ public sealed class AppController : ISwitchboardActions, IAsyncDisposable
         if (move is not { Parked: true }) return;
         _parkedMouse.Remove(move.MonitorId);
         Win32.SetCursorPos(move.FromX, move.FromY);
+    }
+
+    /// <summary>
+    /// After a switch back to this PC: where the mouse belongs, and until when. The MSI G27CQ4 over HDMI unplugs itself
+    /// from the PC for about 0.8 s, half a second after it switches to the PC's input (measured 2026-11-21), and Windows
+    /// moves the mouse onto another screen meanwhile. When the monitor is back, the mouse goes back again.
+    /// </summary>
+    private (string Name, ScreenRect Monitor, int X, int Y, DateTime Until)? _mouseAfterReplug;
+
+    private static readonly TimeSpan MouseAfterReplugFor = TimeSpan.FromSeconds(10);
+
+    /// <summary>On a display change: puts the mouse back if Windows moved it off the monitor that just came back.</summary>
+    private void PutMouseBackAfterReplug()
+    {
+        if (_mouseAfterReplug is not { } r) return;
+        if (DateTime.UtcNow > r.Until)
+        {
+            _mouseAfterReplug = null;
+            return;
+        }
+        // Not while the monitor is gone (the spot is on no screen), and not if the mouse is still on it.
+        if (!Win32.IsOnAScreen(r.X, r.Y) || !Win32.GetCursorPos(out var at) || MouseParking.Contains(r.Monitor, (at.X, at.Y))) return;
+        Win32.SetCursorPos(r.X, r.Y);
+        _mouseAfterReplug = null;
+        Log.Info($"{r.Name}: came back after a display change; mouse back at {r.X},{r.Y} (Windows had moved it to {at.X},{at.Y})");
     }
 
     /// <summary>
