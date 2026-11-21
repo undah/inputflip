@@ -79,3 +79,7 @@ Check `docs/plan.md`: ticked boxes are done, the "Results" table in stage 1 hold
   reading `%LOCALAPPDATA%\Switchboard` from a session may show the sandboxed copy, not the real one. To read the real
   folder from a session, go around the redirection: `\\localhost\C$\Users\<user>\AppData\Local\Switchboard`. Test
   copies should use `--data-dir` anyway.
+- **Screens-off tests (`scripts/quiet-link-test.ps1`) go in Windows PowerShell from the Start menu, not the Claude
+  terminal panel.** On 2026-11-21 the MSI's screens-off switch failed 5 rounds in 7 from the Claude terminal and 0 in
+  8 from Windows PowerShell, with the same timings. Cause unknown. The script writes `logs\quiet-link-test.log` in the
+  repo, so ask the owner to run it and read the log instead of asking for screenshots.

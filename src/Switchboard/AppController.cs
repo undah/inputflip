@@ -52,9 +52,20 @@ public sealed class AppController : ISwitchboardActions, IAsyncDisposable
 
     /// <summary>
     /// How long after the screens come back another screens-off switch on the same monitor waits before starting.
-    /// Its own sends come 3 s later still, so they land after the 4.4 s at which the MSI took a plain command.
+    /// Its own sends come <see cref="ScreensOffWait"/> later still, so they land after the 4.4 s at which the MSI
+    /// took a plain command.
     /// </summary>
     private static readonly TimeSpan ScreensOffRestart = TimeSpan.FromSeconds(2);
+
+    // Screens-off switch timings. Measured on 2026-11-21 with scripts/quiet-link-test.ps1 from Windows PowerShell
+    // (docs/plan.md, stage 1): first send at 2.75 s, 4 sends 250 ms apart, screens woken 0.5 s after the last
+    // switched the MSI to the PS5 5 times in 5, with the screens dark for 4.3 s. Before: 3 s, 6 sends 500 ms apart,
+    // 1.5 s, dark for 7.4 s. Don't go shorter without measuring: one send at 2.25 s with the screens back at 3.8 s
+    // switched 1 time in 3.
+    private static readonly TimeSpan ScreensOffWait = TimeSpan.FromSeconds(2.75);
+    private const int ScreensOffSends = 4;
+    private static readonly TimeSpan ScreensOffSendInterval = TimeSpan.FromMilliseconds(250);
+    private static readonly TimeSpan ScreensOffWakeDelay = TimeSpan.FromMilliseconds(500);
 
     /// <summary>Per monitor: when it's ready for commands again after a screens-off switch (UTC).</summary>
     private readonly Dictionary<string, DateTime> _settleUntil = new(StringComparer.OrdinalIgnoreCase);
@@ -414,7 +425,8 @@ public sealed class AppController : ISwitchboardActions, IAsyncDisposable
     /// <summary>
     /// For monitors that ignore switch commands while showing this PC (the MSI G27CQ4 over DisplayPort):
     /// turn every screen off so no picture goes down the cable, send the command a few times, wake the screens.
-    /// Tested by hand on 2026-11-20 (scripts/quiet-link-test.ps1): the MSI switched to the PS5.
+    /// Tested by hand on 2026-11-20 (scripts/quiet-link-test.ps1): the MSI switched to the PS5. Timings: see
+    /// <see cref="ScreensOffWait"/>.
     /// </summary>
     private async Task SwitchWithScreensOffAsync(string monitorId, uint value, string monitorName, string inputName)
     {
@@ -424,9 +436,9 @@ public sealed class AppController : ISwitchboardActions, IAsyncDisposable
         {
             Log.Info($"{monitorName}: switching to {InputCatalog.FormatValue(value)} with the screens off");
             _host.TurnScreensOff();
-            await Task.Delay(TimeSpan.FromSeconds(3));
-            int accepted = await _monitors.SendRepeatedlyAsync(monitorId, value, 6, TimeSpan.FromMilliseconds(500));
-            await Task.Delay(TimeSpan.FromSeconds(1.5));
+            await Task.Delay(ScreensOffWait);
+            int accepted = await _monitors.SendRepeatedlyAsync(monitorId, value, ScreensOffSends, ScreensOffSendInterval);
+            await Task.Delay(ScreensOffWakeDelay);
             HostWindow.WakeScreens();
             _settleUntil[monitorId] = DateTime.UtcNow + ScreensOffSettle;
 
@@ -441,9 +453,11 @@ public sealed class AppController : ISwitchboardActions, IAsyncDisposable
         }
         finally
         {
+            // No forced re-find of the monitors afterwards: in the 2026-11-21 test rounds the switch caused no display
+            // change and the handles kept working. A re-find would read the MSI right after the screens come back,
+            // often get a garbled answer and clear the input just assumed. A display change during the switch still
+            // leads to one: the display timer keeps re-arming while this runs and fires once it's over.
             _screensOffSwitchRunning = false;
-            // Turning screens off and on can look like a display change; take one fresh look once it's over.
-            RestartDisplayTimer();
         }
     }
 

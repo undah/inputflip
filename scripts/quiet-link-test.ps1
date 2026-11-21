@@ -17,6 +17,8 @@
 
     All screens go black for a few seconds per round. Don't touch the mouse or keyboard until they come back:
     any input wakes them early. Keep this PowerShell window on a monitor other than the one being switched.
+    Run it from Windows PowerShell (Start menu), not the Claude desktop app's terminal: from there the switch
+    failed 5 rounds in 7 on 2026-11-21, against 0 in 8 from Windows PowerShell.
 
     Every round's timeline (seconds after the screens-off command) is printed and appended to
     logs\quiet-link-test.log in the repo. Error codes in it: C0262589 garbled reply (the MSI's usual answer over
@@ -48,8 +50,8 @@
 
 .PARAMETER Watch
     Also read the input over and over while waiting, to see how the monitor's replies change after the screens
-    go off. Adds DDC/CI traffic the app doesn't make, so leave it off when timing. (The only -Watch rounds so far,
-    2026-11-21 12:40, came during a spell when the MSI ignored every command, so they show nothing about timing.)
+    go off. Adds DDC/CI traffic the app doesn't make, so leave it off when timing. (All 5 -Watch rounds so far
+    failed, 2026-11-21, but they ran from the Claude terminal, where plain rounds failed often too.)
 
 .PARAMETER Delay
     Countdown before each round, in seconds.

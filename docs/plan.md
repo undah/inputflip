@@ -106,27 +106,33 @@ So both directions work over DisplayPort, keeping 165 Hz:
 
 **PS5 → PC failed after a manual switch (2026-11-21, 11:50 to 11:54, installed build).** The owner put the MSI on the PS5 with the Navi Key, then clicked DisplayPort 1 three times (11:50:42, 11:50:48, 11:51:26): ignored. Every read-back got `0xC0262589` (the MSI answering garbled), unlike the switch-backs that worked (11:23:53, 11:25:55, 11:41:53), where reads right after the command failed with `0xC0262582` (no answer) and Windows then saw the DisplayPort link come back (`0xC026258D`). `quiet-link-test.ps1 -Target 0x0F` (screens off, 6 sends accepted) didn't bring it back either. The MSI stayed lit through it, as expected: it was showing the PS5's picture. Not yet known: whether switch-back still works when the *app* made the switch to the PS5 (every switch-back that worked came after one), or whether the PS5 being on matters. Leading suspect: the manual switch. Then (11:55) the owner clicked PS5 (screens-off sequence, 11:55:22 to 11:55:28) and DisplayPort 1 at 11:55:31: ignored too. But that click went out 3 s after the screens came back, while the app was re-finding monitors (11:55:31.335), like the other failure after an app switch (11:43:33, 0.2 s after re-finding). The switch-backs that worked were all sent 19 s or more after the last re-find. Second suspect: a command sent too soon after the screens-off sequence. **Confirmed (11:58):** the owner clicked PS5, waited 30 s, clicked DisplayPort 1: the MSI came back. **Fix in 1.0.1:** for 25 s after a screens-off switch, a switch on that monitor re-sends the command every 2 s (plain commands it ignores do no harm) and stops at the first display change more than 5 s after the screens came back. Every switch-back that worked was followed by one. Targets that need the screens-off sequence wait out the 25 s instead. The log records how many seconds after the screens came back the display change came, which will narrow the real limit down. **Tested with 1.0.1 (12:08, owner: "came back quickly"):** first send at 4.4 s after the screens came back, display change at 7.0 s, so one send was enough. Recomputed from the wake time, the failures were at 1.0, 1.4 and 1.7 s: the MSI listens again somewhere between 1.7 and 4.4 s. Then a click on PS5 at 13.8 s was held until 25 s for nothing. **1.0.2:** a confirmed switch-back ends the waiting period, and a screens-off switch only waits until 2 s after the screens came back (its sends come 3 s later still). Still open: switching by hand with the Navi Key and then back from the app failed even 44 s later and with the screens off; until that's understood, switch to the PS5 from the app. Fallback if PS5 → PC over DisplayPort proves unreliable: the HDMI cabling plan below (over HDMI the MSI answered every time).
 
-**Trying to shorten the screens-off switch (2026-11-21, 12:40 to 13:12).** Goal: less than the app's ~7.4 s of dark screens (3 s off, 6 sends 0.5 s apart, 1.5 s, wake). `scripts/quiet-link-test.ps1` now runs timed round trips (screens off, sends, wake, ask the owner, switch back with plain commands like the app) and logs a timeline to `logs\quiet-link-test.log` (not committed). Target `0x11`, PS5 on HDMI 1, Switchboard closed, run from the Claude terminal (that works fine).
+**Shortening the screens-off switch (2026-11-21, 12:40 to 14:10).** Goal: less than the app's ~7.4 s of dark screens (3 s off, 6 sends 0.5 s apart, 1.5 s, wake). `scripts/quiet-link-test.ps1` now runs timed round trips (screens off, sends, wake, ask the owner, switch back with plain `0x0F` sends every 2 s from 5 s after waking, like the app) and logs a timeline to `logs\quiet-link-test.log` (not committed). Target `0x11`, PS5 on HDMI 1, Switchboard closed. "Claude" = the Claude desktop app's terminal panel, "PS" = Windows PowerShell from the Start menu. Times are actual (the script's sleeps overshoot by about 0.25 s).
 
-| Time | Setting | Switched |
-|---|---|---|
-| 12:40 | app timings, reading the input every 0.1 s (`-Watch`) | 0 of 2 |
-| 12:42 | one send at 1 s | 0 of 3 |
-| 12:43 | one send at 0.5 s | 0 of 3 |
-| 12:52 | the app itself (1.0.4) | 1 of 1 |
-| 12:54 | app timings | 0 of 2 |
-| 13:05 | app timings | 2 of 2; the script's switch-back worked both times (display change 1.6 s after the send) |
-| 13:07 | one send at 2 s | 1 of 3 |
-| 13:10 | sends every 0.25 s from 1.5 to 4.4 s, with `-Watch` | 0 of 3 |
+| Time | Where | Sends | Dark | To PS5 | Back to PC |
+|---|---|---|---|---|---|
+| 12:40 | Claude | app timings, reading every 0.1 s (`-Watch`) | 7.4 s | 0 of 2 | |
+| 12:42 | Claude | one at 1.3 s | 2.8 s | 0 of 3 | |
+| 12:43 | Claude | one at 0.75 s | 2.3 s | 0 of 3 | |
+| 12:52 | app 1.0.4 | app timings | 7.4 s | 1 of 1 | |
+| 12:54 | Claude | app timings | 7.6 s | 0 of 2 | |
+| 13:05 | Claude | app timings | 7.7 s | 2 of 2 | 2 of 2 |
+| 13:07 | Claude | one at 2.25 s | 3.8 s | 1 of 3 | 1 of 1 |
+| 13:10 | Claude | 10 from 1.5 s, 0.3 s apart, `-Watch` | 6.0 s | 0 of 3 | |
+| 13:12 | Claude | 10 from 1.75 s, 0.3 s apart | 6.2 s | 0 of 3 | |
+| 14:05 | PS | 10 from 1.8 s, 0.3 s apart | 6.2 s | 3 of 3 | 1 of 3, 1 unclear |
+| 14:07 | PS | **4 from 2.75 s, 0.3 s apart, wake 0.5 s after the last** | **4.3 s** | **5 of 5** | 3 of 5 |
 
-- **The MSI has spells where it ignores DisplayPort commands in both directions**, screens off or not. Twice a switch back from the PS5 in the app failed (12:40, 22 min after the switch; 12:53:56 and 12:54:04, 1.7 min after), the owner came back with the Navi Key, and screens-off switches then failed (12:40 to 12:44, 12:54 to 12:55) until 8 to 11 minutes later (12:52, 13:05). This fits the 11:50 failure above better than "the manual switch" does. Cause unknown.
-- **What a failed round looks like:** the MSI's replies over DisplayPort stay garbled (`0xC0262589`) through the dark spell and after. After a switch that worked, reads over DisplayPort answer `0x11` within 1 s of the screens coming back. In no round did the replies change while the screens were dark, so there's no signal to wake the screens early on.
-- **No shorter setting was established.** With spells coming and going, a failed round can't tell "too early" from "in a spell", and 13:07 to 13:10 may have been either. One send at 2 s worked once. The app's timings stay as they are (1.0.4).
+- **1.0.5 uses the 14:07 setting:** screens dark for 4.3 s instead of 7.4 s. The app waits 2.75 s, the time the script's first send actually went out. Margin unknown: 3.8 s of dark with one send at 2.25 s switched 1 time in 3 (in the Claude terminal, see next point).
+- **Run these tests from Windows PowerShell, not the Claude terminal.** With 4.3 s of dark or more and no reads, PC → PS5 failed 5 of 7 rounds in the Claude terminal and 0 of 8 in Windows PowerShell, and the app (not started from Claude) hasn't failed once since 12:08. Cause unknown; perhaps something in Claude's process tree keeps the displays or the DisplayPort link awake. Earlier notes put these failures down to "spells" of the MSI; for PC → PS5 that doesn't hold once the Claude-terminal rounds are set aside.
+- **Reading during the dark spell (`-Watch`) failed every time** (0 of 5), but only ever ran in the Claude terminal.
+- **The MSI may switch to the PS5 by itself.** At 14:05 round 2, Windows reported a display change 0.3 s after the screens went off, so every send failed with `0xC026258D` (handle gone, nothing reached the monitor), and the MSI still went to the PS5. Likely an automatic input switch when DisplayPort goes dark. To confirm: a round with no sends (`-Sends 0 -OffSeconds 4.5 -WakeMs 0`), and look for an auto-scan option in the MSI's menu.
+- **The switch back to the PC is the unreliable part.** The script's plain sends (7 to 8 s after waking, every 2 s for 20 s) failed 3 times in 8 in Windows PowerShell; the app's failed at 11:50, 12:40 and 12:53. It lines up with the reads right after waking: where the MSI answered `0x11` throughout, the switch back worked (6 of 6); where its answers turned garbled (`0xC0262589`, `0xC026258B`), it failed (3 of 3) and stayed failed until the owner used the Navi Key (at 12:40 for 22 minutes). So the earlier "manual switch" and "spells" suspects were most likely this. Ideas: when the answers are garbled, switch back with the screens off as well (tried once at 11:5x without success, possibly from the Claude terminal), or the HDMI cabling plan.
+- **1.0.5 no longer re-finds the monitors after a screens-off switch.** The switch caused no display change in the test rounds and the handle kept working; the re-find read the MSI right after waking and, on a garbled answer, cleared the input just assumed.
 - **Firmware (checked 2026-11-21):** MSI's G27CQ4 support page offers no firmware, only a 2019 monitor driver, Display Kit 0.0.2.3 and a Google Play item; its tabs are Driver and Utility & Others. MSI's firmware-over-DisplayPort tool covers only some QD-OLED models. So FW.013 stays.
 
-So the DisplayPort route is neither fast nor reliable. **Next: the HDMI cabling plan below.** The owner has a DisplayPort-to-HDMI cable arriving 2026-11-21. Over HDMI the MSI switches in about 0.2 s with a confirmed read-back and no dark screens.
+**Next:** the owner tests 1.0.5 both ways. The HDMI cabling plan below would make both directions instant and confirmed; the owner has the cable (arriving 2026-11-21).
 
-**Stage 1 was thought done** (superseded by the spells above): the MSI switches between the PC (DisplayPort) and the PS5 (HDMI) in both directions with the PS5 on, without new cables.
+**Stage 1 was thought done** (the way back isn't reliable, above): the MSI switches between the PC (DisplayPort) and the PS5 (HDMI) in both directions with the PS5 on, without new cables.
 
 **Test to confirm (owner, at the monitor):**
 
@@ -136,7 +142,7 @@ So the DisplayPort route is neither fast nor reliable. **Next: the HDMI cabling 
 4. Do steps 1 to 3 again to see if it's repeatable.
 5. With the PC on screen, click **HDMI 2** once (PS5 on). Wait 10 s. Did it switch?
 
-**Decision (2026-11-20): HDMI plan.** Back on as of 2026-11-21: the screens-off switch isn't reliable (spells, above). The owner chose it over the DisplayPort long shots. Setup checklist (owner):
+**Decision (2026-11-20): HDMI plan.** Open again as of 2026-11-21: over DisplayPort the switch back to the PC isn't reliable (above). The owner chose it over the DisplayPort long shots. Setup checklist (owner):
 
 1. Buy a DisplayPort-to-HDMI cable. A passive one is enough for an Acer (1080p, 75 Hz).
 2. Connect one Acer from a free graphics-card DisplayPort port to its HDMI input.
