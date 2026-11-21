@@ -1,7 +1,12 @@
-<Solution>
+﻿<Solution>
+  <Configurations>
+    <Platform Name="x64" />
+  </Configurations>
   <Folder Name="/src/">
     <Project Path="src/Switchboard.Core/Switchboard.Core.csproj" />
-    <Project Path="src/Switchboard/Switchboard.csproj" />
+    <Project Path="src/Switchboard/Switchboard.csproj">
+      <Platform Project="x64" />
+    </Project>
   </Folder>
   <Folder Name="/tests/">
     <Project Path="tests/Switchboard.Core.Tests/Switchboard.Core.Tests.csproj" />

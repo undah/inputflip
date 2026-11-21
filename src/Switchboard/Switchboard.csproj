@@ -19,6 +19,9 @@
     <!-- Unpackaged, with the Windows App SDK runtime copied next to the exe: no MSIX, no separate runtime install. -->
     <WindowsPackageType>None</WindowsPackageType>
     <WindowsAppSDKSelfContained>true</WindowsAppSDKSelfContained>
+    <!-- Despite the name, no MSIX: without it, dotnet publish leaves out the app's compiled XAML (.xbf, .pri)
+         and the published app fails at start with "XAML parsing failed". -->
+    <EnableMsixTooling>true</EnableMsixTooling>
     <!-- Program.cs has Main: it reads the command line and runs Velopack's install hooks before the UI starts. -->
     <DefineConstants>$(DefineConstants);DISABLE_XAML_GENERATED_MAIN</DefineConstants>
     <ImplicitUsings>enable</ImplicitUsings>
