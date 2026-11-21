@@ -395,11 +395,36 @@ second put-back had nothing to do; the retry after a display change wasn't neede
 
 ---
 
-## Later (stage 4 ideas)
+## Stage 4: InputFlip, open source (started 2026-11-21, 20:15)
+
+**Goal (owner):** new features, a look of its own, and a public, well-documented open-source repo that people searching
+for a monitor input switcher can find.
+
+**Owner's choices (2026-11-21, 20:20):**
+
+- **Name: InputFlip** ("Switchboard" is the name of 2,300 GitHub repos; "InputFlip" of none). What people see changes
+  (window title, Start menu, installer, repo name). What keeps settings and updates working stays: the Velopack pack id
+  `SwitchboardApp`, the data folder `%LOCALAPPDATA%\Switchboard`, the `Switchboard` start-with-Windows entry.
+- **Licence: MIT.**
+- **Look: "Tiles"** (picked from three mockups: Signal, Tiles, Studio). Each input is a big tile with its icon; the
+  one showing now is coral (`#FF6B57`) on deep plum in dark mode, on warm off-white in light; tiles flip when you switch.
+- **Features: all eight offered.**
+  - [ ] Scenes: one click or key switches several monitors at once
+  - [ ] Command line and `inputflip://` links (scripts, desktop shortcuts, AutoHotkey, Stream Deck)
+  - [ ] USB auto-switch: a USB device plugging in or leaving switches a monitor (a USB switch box becomes a KVM)
+  - [ ] Pop-up picker by the mouse, and a short toast on a screen that still shows the PC
+  - [ ] Brightness and contrast per monitor (and a brightness level in scenes)
+  - [ ] Monitor speaker volume and mute
+  - [ ] Tray icon as well as the window
+  - [ ] Switch on sleep or lock, and back on wake (optional, off by default)
+- [ ] New look and icon
+- [ ] Docs: README, user guide, compatibility list, CONTRIBUTING, CODE_OF_CONDUCT, SECURITY, issue and PR templates
+- [ ] History audit, owner's OK, repo public with description and topics
+- [ ] Shipped as a new version through the Update button
+
+## Later (ideas)
 
 Each roughly half a day to a day:
 
-- Auto-switch when a USB device connects or disconnects (KVM-style)
-- Profiles (switch several monitors at once)
 - Control an external HDMI switch (USB / RS-232 / IR / network) for monitors that can't switch back
 - Arduino or IR-blaster support as a last-resort workaround
