@@ -72,3 +72,10 @@ Check `docs/plan.md`: ticked boxes are done, the "Results" table in stage 1 hold
 
 - Windows 11. Shell commands may run in PowerShell or Git Bash; check which before using shell-specific syntax.
 - Testing anything DDC/CI-related needs the owner's real monitor; ask them to run it and report results rather than guessing.
+- **The Claude desktop app is an MSIX package, and so is everything it starts.** Shell commands and any Switchboard
+  started from a Claude session get `%LOCALAPPDATA%` redirected to
+  `%LOCALAPPDATA%\Packages\Claude_pzs8sxrjxfjjc\LocalCache\Local\` (found 2026-11-21). So a Switchboard started from
+  a session saves its settings *there*, and the installed app (started from the Start menu) never sees them; and
+  reading `%LOCALAPPDATA%\Switchboard` from a session may show the sandboxed copy, not the real one. To read the real
+  folder from a session, go around the redirection: `\\localhost\C$\Users\<user>\AppData\Local\Switchboard`. Test
+  copies should use `--data-dir` anyway.
