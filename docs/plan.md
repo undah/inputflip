@@ -377,7 +377,18 @@ DDC/CI; the remaining lever is hardware that holds the hot-plug signal (untested
 
 **1.0.7 (19:57):** the replug moved the mouse onto an Acer after 1.0.6 had put it back, and killed the MSI's monitor
 handle for about 3 s. Now the mouse goes back again when the MSI returns, and a switch that fails within 10 s of a display
-change finds the monitors again and retries once. Mouse moves are logged. Not yet tested by the owner.
+change finds the monitors again and retries once. Mouse moves are logged.
+
+**Owner test with 1.0.7 (20:02 to 20:04, updated with the Update button at 20:01:51):** the start took the capabilities
+strings from `capabilities.json` (no 5.6 s of reading after the update). Alt+Q to the PS5 at 20:03:57: mouse moved off
+the MSI to the middle of Switchboard's window on the left Acer, command out 72 ms after the key (the toggle re-read the
+input first: last reading 75 s old), confirmed 123 ms after the command. Alt+Q back at 20:04:04: mouse back at the same
+spot, command out 1 ms after the key, confirmed 123 ms after it; the MSI's replug followed, and Switchboard found the
+monitors again by itself at 20:04:08. Owner: "mouse came back". Windows didn't move the mouse during this replug, so the
+second put-back had nothing to do; the retry after a display change wasn't needed.
+
+- [x] Toggle, per-input shortcuts, instant highlight, quiet confirm, mouse parking: working (owner, 19:32 to 20:04).
+- [ ] Faster than the MSI's own 5 to 6 s: needs hardware that holds the hot-plug signal (see above); owner's call.
 
 **Done when:** you'd be happy for a friend to install it. Left: the owner checks above, and the auto-update decision.
 
