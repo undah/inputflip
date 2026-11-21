@@ -5,7 +5,7 @@ Three stages. Each one ends with a clear "done when" check before moving on.
 | Stage | Result | Estimate |
 |---|---|---|
 | 1. Proof of concept | We know whether and how the monitor responds to DDC/CI | 15–30 min |
-| 2. Working app | Functional tray app with switching and hotkeys | A few hours |
+| 2. Working app | Functional app with switching and hotkeys | A few hours |
 | 3. Polished v1 | Windows 11-style design, setup wizard, installer | 1–2 days of back and forth |
 
 Tick the boxes as work lands so any session (or Claude account) can see where things stand.
@@ -186,34 +186,74 @@ Best done once the MSI is on HDMI (stage 1 cabling plan): over DisplayPort it ig
 
 **Goal:** something that feels like part of Windows 11.
 
+Built 2026-11-21 while the owner was away, so nothing here was tested by switching a monitor. The plan predated two
+decisions and was adapted: the app is a **normal window**, not a tray flyout (so "flyout position" became "opens where
+you left it", already in stage 2), and the MSI uses the **screens-off switch** over DisplayPort.
+
 ### Steps
 
-- [ ] **Visual design**
-  - [ ] Mica background, Fluent icons, Windows accent color
-  - [ ] Light and dark mode follow Windows
-  - [ ] Subtle animation when the highlight moves to the new input; spinner while the monitor responds
-  - [ ] Spacing and corners that match the Windows 11 Quick Settings panel
-- [ ] **Automatic input detection** from the capabilities string, with friendly names ("HDMI 1", "DisplayPort"). Manual "Add input" (enter value + Test button) for monitors with non-standard values.
-- [ ] **First-run setup** (four short screens):
-  1. Monitors found
-  2. DDC/CI test
-  3. Name inputs and pick an icon for each (PC, laptop, console)
-  4. Choose hotkeys
-- [ ] **Settings window**
-  - [ ] General: start with Windows, theme, flyout position
-  - [ ] Monitors: rename, reorder, icons, hide inputs, custom values
-  - [ ] Hotkeys: shortcut recorder that warns about conflicts
-  - [ ] About: version and diagnostics (copy capabilities string)
-- [ ] **Accessibility:** full keyboard navigation, Narrator labels, correct at any display scaling.
-- [ ] **Packaging:** Velopack or Inno Setup installer, start with Windows, optional auto-update. Unsigned builds trigger a SmartScreen warning on first run; that's expected for a personal tool.
-- [ ] **Testing checklist**
-  - [ ] Sleep and wake
-  - [ ] Unplug and replug a monitor
-  - [ ] Two monitors
-  - [ ] Non-100% display scaling
-  - [ ] Hotkey for the input that's already showing
+- [x] **Visual design**
+  - [x] Mica background, Fluent icons (Segoe Fluent Icons), Windows accent color for the input showing now
+  - [x] Light and dark mode follow Windows, or pick one in Settings › General. Checked with screenshots in both.
+  - [x] Clear hover and pressed states, on the accent-filled row too (checked with screenshots of each state)
+  - [x] Spinner while a monitor responds (stage 2). **Decided against the fade when the highlight moves:** WinUI 1.8's
+        `BrushTransition`/`ScalarTransition` on the row crashed the app (access violation) when the theme changed.
+  - [x] Spacing and corners from Windows 11 theme resources: monitors as cards, 4 px rows, 8 px cards. The window no
+        longer has an empty strip at the bottom (it was sized as if it had a system title bar, 31 px too tall).
+- [x] **Automatic input detection** from the capabilities string (stage 2). Manual **Add input** by value in
+      Settings › Monitors. **No Test button** (owner's rule while away: no switching); you test by clicking the new
+      input in the main window.
+- [x] **First-run setup**, shown when settings.json doesn't exist, skippable on every page:
+  1. Your monitors: found, cable type, whether each answers DDC/CI (this is the DDC/CI test; reads only)
+  2. Name your inputs and pick an icon, untick unused ones
+  3. Only when needed: turn on the screens-off switch for a monitor that answers over DisplayPort but lists no
+     inputs (the MSI's pattern). The cable type comes from Windows (`QueryDisplayConfig`), not from the monitor.
+  4. Shortcuts
+- [x] **Settings window** (gear button or Ctrl+, in the main window)
+  - [x] General: start with Windows (HKCU Run entry; tested on and off, **left off**), theme, keep on top, edit settings file
+  - [x] Monitors: rename, reorder monitors and inputs, icons, show/hide, add input by value, remove added inputs,
+        screens-off switch per monitor, forget a monitor that isn't connected
+  - [x] Shortcuts: recorder that pauses Switchboard's own shortcuts while it listens, refuses a shortcut that's
+        taken (by Switchboard or another app) and says by what; which monitor the next-input shortcut uses
+  - [x] About: version, open log, open settings folder, run setup again, diagnostics with each monitor's
+        capabilities string (copy one or all, read again)
+- [x] **Accessibility**
+  - [x] Keyboard: Tab through the title bar buttons and into the list, arrow keys between inputs (across monitors),
+        Shift+F10 for an input's menu, F5 refresh, Ctrl+, settings. Focus rectangle visible. Checked by sending keys.
+  - [x] Narrator: every focusable control has a name (checked with UI Automation on all windows and pages), inputs
+        say "Switch to PS5" / "HDMI 1, showing now" with the port and shortcut as help text, status messages are
+        announced (live region), headings on monitor names and page titles.
+  - [ ] **Scaling, needs the owner:** all three displays are at 100%, and changing that is a system setting. Sizes
+        are computed in DIPs and the window refits when moved to a display with other scaling. To check: set one
+        Acer to 125% then 150% (Settings › Display › Scale), drag Switchboard onto it, open Settings and the setup
+        (About › Run setup). Look for clipped text and the window's height.
+- [x] **Packaging:** `scripts/build-installer.ps1` → `releases\SwitchboardApp-win-Setup.exe` (78 MB, includes .NET 10
+      and the Windows App SDK; friends need nothing else) and a portable zip. Velopack 1.2.161, unsigned, not
+      published. Real `.ico` (16 to 256 px) drawn by `IconArt` in Core. Start with Windows is in Settings.
+  - [ ] **Auto-update: not done, owner's call.** Velopack can update from GitHub Releases, but the repo is private,
+        so friends couldn't reach it. Options: make releases public somewhere (a public repo or any static folder),
+        then add `UpdateManager` with that URL.
+  - [ ] **Installer run, needs the owner:** not run on this PC (it installs, adds shortcuts and starts the app on the
+        real settings). The packed app was started from the portable zip and works.
+- [ ] **Testing checklist** (needs the owner; each switches monitors or changes the PC)
+  - [ ] Install `SwitchboardApp-win-Setup.exe`, run it from the Start menu, uninstall it from Settings › Apps: the
+        settings in `%LOCALAPPDATA%\Switchboard` should still be there afterwards
+  - [ ] Sleep and wake: monitors come back in the window within a few seconds, shortcuts still work
+  - [ ] Unplug and replug a monitor (an Acer): it disappears and comes back with its names
+  - [ ] Two monitors: unplug one Acer and use the app
+  - [ ] Non-100% display scaling (see Accessibility)
+  - [ ] Hotkey for the input that's already showing (an Acer): status says it's already showing, nothing blinks
+  - [ ] A shortcut for an input (Settings › Shortcuts), pressed while a game is in front
+  - [ ] Clicking an Acer input switches it and the window confirms it (stage 2 leftover)
+  - [ ] The MSI both ways again with this build (PC → PS5 uses the screens-off switch)
+  - [ ] Start with Windows: turn it on, sign out and in
 
-**Done when:** you'd be happy for a friend to install it.
+Also checked without the owner: 62 unit tests; the app builds with no warnings (`dotnet build Switchboard.slnx`);
+first-run setup end to end in a temporary data folder (`--data-dir`, `--no-switch`), where it suggested and turned on
+the screens-off switch for the MSI (`0x0F`); settings edits land in settings.json and the main window; shortcut
+recorder saves, refuses a conflict, and the new shortcut works globally; live theme changes.
+
+**Done when:** you'd be happy for a friend to install it. Left: the owner checks above, and the auto-update decision.
 
 ---
 
