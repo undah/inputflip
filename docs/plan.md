@@ -388,7 +388,8 @@ monitors again by itself at 20:04:08. Owner: "mouse came back". Windows didn't m
 second put-back had nothing to do; the retry after a display change wasn't needed.
 
 - [x] Toggle, per-input shortcuts, instant highlight, quiet confirm, mouse parking: working (owner, 19:32 to 20:04).
-- [ ] Faster than the MSI's own 5 to 6 s: needs hardware that holds the hot-plug signal (see above); owner's call.
+- [ ] Faster than the MSI's own 5 to 6 s: needs hardware that holds the hot-plug signal (see above). **Owner's decision
+      (2026-11-21, 20:06): stop here**, no hardware for now. Done for the fast-switch task.
 
 **Done when:** you'd be happy for a friend to install it. Left: the owner checks above, and the auto-update decision.
 
