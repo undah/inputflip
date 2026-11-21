@@ -101,10 +101,11 @@ public class ShortcutTests
 
         Assert.True(ShortcutSlots.Set(settings, key, "Ctrl+Alt+Shift+2"));
         Assert.Equal("Ctrl+Alt+Shift+2", ShortcutSlots.Get(settings, key));
-        Assert.Equal(new[] { ShortcutSlots.Show, ShortcutSlots.Cycle, key }, ShortcutSlots.All(settings).Select(s => s.Key));
+        Assert.Equal(new[] { ShortcutSlots.Show, ShortcutSlots.Cycle, ShortcutSlots.Picker, key }, ShortcutSlots.All(settings).Select(s => s.Key));
 
         Assert.True(ShortcutSlots.Set(settings, ShortcutSlots.Cycle, " "));
-        Assert.Null(settings.CycleHotkey);
+        Assert.Equal("", settings.CycleHotkey);
+        Assert.Null(ShortcutSlots.Get(settings, ShortcutSlots.Cycle));
         Assert.False(ShortcutSlots.Set(settings, ShortcutSlots.InputKey("UNKNOWN", 0x11), "Ctrl+Alt+1"));
     }
 

@@ -242,6 +242,31 @@ public sealed class MonitorService : IAsyncDisposable
         return read.Current;
     }
 
+    /// <summary>Reads a VCP code (brightness, contrast, volume...). Null if the monitor didn't answer.</summary>
+    public async Task<(uint Current, uint Maximum)?> ReadVcpAsync(string monitorId, byte code)
+    {
+        Entry? entry;
+        lock (_lock) entry = _entries.FirstOrDefault(e => e.Snapshot.Id == monitorId);
+        if (entry?.Channel is null) return null;
+        var read = await entry.Channel.ReadAsync(code, ReadAttempts).ConfigureAwait(false);
+        return read.Ok ? (read.Current, read.Maximum) : null;
+    }
+
+    /// <summary>Sets a VCP code other than the input (brightness, contrast, volume, mute). False if it didn't go through.</summary>
+    public async Task<bool> SetVcpAsync(string monitorId, byte code, uint value)
+    {
+        Entry? entry;
+        lock (_lock) entry = _entries.FirstOrDefault(e => e.Snapshot.Id == monitorId);
+        if (entry?.Channel is null) return false;
+        if (ReadOnly)
+        {
+            Log.Info($"{entry.Snapshot.Name}: not setting VCP 0x{code:X2} to {value}, started with --no-switch");
+            return false;
+        }
+        var write = await entry.Channel.WriteAsync(code, value, 1).ConfigureAwait(false);
+        return write.Ok;
+    }
+
     private static long Ms(long from, long to) => Math.Max(0, (to - from) * 1000 / Stopwatch.Frequency);
 
     /// <summary>

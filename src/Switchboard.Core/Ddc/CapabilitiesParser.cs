@@ -81,6 +81,10 @@ public static class CapabilitiesParser
         return [];
     }
 
+    /// <summary>The VCP codes a capabilities string lists (brightness 10, volume 62...). Empty if it lists none.</summary>
+    public static IReadOnlySet<byte> GetSupportedCodes(string? caps) =>
+        ParseVcp(GetGroup(caps, "vcp")).Select(c => c.Code).ToHashSet();
+
     /// <summary>The model(...) name, if any.</summary>
     public static string? GetModel(string? caps)
     {

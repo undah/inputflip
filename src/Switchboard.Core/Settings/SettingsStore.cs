@@ -52,6 +52,14 @@ public sealed class SettingsStore
                 settings.Monitors ?? new(), StringComparer.OrdinalIgnoreCase);
             foreach (var monitor in settings.Monitors.Values)
                 monitor.Inputs ??= new();
+            // "scenes": null and the like in a hand-edited file.
+            settings.Scenes = (settings.Scenes ?? new()).Where(s => s is not null).ToList();
+            foreach (var scene in settings.Scenes)
+            {
+                scene.Steps = (scene.Steps ?? new()).Where(s => s is not null && !string.IsNullOrWhiteSpace(s.Monitor)).ToList();
+                if (string.IsNullOrWhiteSpace(scene.Id)) scene.Id = Actions.ScenePlanner.MakeId(scene.Name, settings.Scenes.Where(s => s != scene));
+            }
+            settings.UsbRules = (settings.UsbRules ?? new()).Where(r => r is not null).ToList();
             IsBroken = false;
             return new SettingsLoadResult(settings, true, null);
         }

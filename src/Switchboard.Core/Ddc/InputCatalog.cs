@@ -2,7 +2,35 @@ namespace Switchboard.Core.Ddc;
 
 public static class VcpCodes
 {
+    public const byte Brightness = 0x10;
+    public const byte Contrast = 0x12;
     public const byte InputSource = 0x60;
+    public const byte SpeakerVolume = 0x62;
+
+    /// <summary>MCCS audio mute: 1 = muted, 2 = not muted.</summary>
+    public const byte AudioMute = 0x8D;
+
+    public const uint Muted = 1, NotMuted = 2;
+}
+
+/// <summary>Converts between a monitor's raw VCP value (0 to its maximum) and a percentage for sliders.</summary>
+public static class VcpScale
+{
+    /// <summary>The raw value as 0 to 100. A maximum of 0 (some monitors) is treated as 100.</summary>
+    public static int ToPercent(uint current, uint maximum)
+    {
+        if (maximum == 0) maximum = 100;
+        if (current >= maximum) return 100;
+        return (int)Math.Round(current * 100.0 / maximum, MidpointRounding.AwayFromZero);
+    }
+
+    /// <summary>0 to 100 as a raw value for a monitor whose maximum is <paramref name="maximum"/>.</summary>
+    public static uint FromPercent(int percent, uint maximum)
+    {
+        if (maximum == 0) maximum = 100;
+        percent = Math.Clamp(percent, 0, 100);
+        return (uint)Math.Round(percent * maximum / 100.0, MidpointRounding.AwayFromZero);
+    }
 }
 
 /// <summary>Friendly names for VCP 0x60 input values (MCCS standard, plus the common USB-C value).</summary>

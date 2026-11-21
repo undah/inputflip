@@ -43,8 +43,90 @@ public sealed class AppSettings
     /// </summary>
     public string? UpdateSource { get; set; }
 
+    /// <summary>Opens the pop-up picker next to the mouse. Empty: no shortcut.</summary>
+    public string? PickerHotkey { get; set; } = "Ctrl+Alt+Shift+P";
+
+    /// <summary>
+    /// Don't show the short "MSI → PS5" note after a switch from a shortcut, a scene, a rule or the command line.
+    /// (Opt-out, like <see cref="LeaveMouseAlone"/>.)
+    /// </summary>
+    public bool HideToasts { get; set; }
+
+    /// <summary>No icon by the clock. (Opt-out: the icon shows by default.)</summary>
+    public bool HideTrayIcon { get; set; }
+
+    /// <summary>Closing the window keeps InputFlip running in the tray instead of quitting.</summary>
+    public bool CloseToTray { get; set; }
+
+    /// <summary>Named sets of switches (and brightness levels) run with one click, key or command.</summary>
+    public List<SceneSettings> Scenes { get; set; } = new();
+
+    /// <summary>What to do when a USB device plugs in or leaves.</summary>
+    public List<UsbRule> UsbRules { get; set; } = new();
+
+    /// <summary>What to do when the PC locks, unlocks, sleeps or wakes. Off unless set.</summary>
+    public PowerRules? PowerRules { get; set; }
+
     /// <summary>Keyed by monitor id (see MonitorIdentity). Monitors show in the order they're listed here.</summary>
     public Dictionary<string, MonitorSettings> Monitors { get; set; } = new(StringComparer.OrdinalIgnoreCase);
+}
+
+/// <summary>A scene: switch several monitors (and set their brightness) at once.</summary>
+public sealed class SceneSettings
+{
+    /// <summary>Stable key for shortcuts, links and rules ("console"); made from the name when the scene is created.</summary>
+    public string Id { get; set; } = "";
+
+    public string? Name { get; set; }
+
+    /// <summary>pc, laptop, console, tv or display.</summary>
+    public string? Icon { get; set; }
+
+    public string? Hotkey { get; set; }
+
+    public List<SceneStep> Steps { get; set; } = new();
+}
+
+/// <summary>One monitor in a scene: the input to switch to, a brightness level, or both.</summary>
+public sealed class SceneStep
+{
+    /// <summary>Monitor id (see MonitorIdentity).</summary>
+    public string Monitor { get; set; } = "";
+
+    [JsonConverter(typeof(NullableHexValueConverter))]
+    public uint? Input { get; set; }
+
+    /// <summary>0 to 100. Empty: leave it.</summary>
+    public int? Brightness { get; set; }
+}
+
+/// <summary>A USB device that switches monitors when it plugs in or leaves (a USB switch box moving the keyboard, say).</summary>
+public sealed class UsbRule
+{
+    /// <summary>"VID_046D&amp;PID_C52B", optionally with "\serial". See <see cref="Usb.UsbDeviceId"/>.</summary>
+    public string Device { get; set; } = "";
+
+    /// <summary>What Windows called the device when the rule was made, for the settings window.</summary>
+    public string? Name { get; set; }
+
+    /// <summary>An action (see <see cref="Actions.AppAction"/>): "scene:console", "switch:MSI3CB0-000000D1:0x11" or "back".</summary>
+    public string? WhenConnected { get; set; }
+
+    public string? WhenDisconnected { get; set; }
+
+    public bool Disabled { get; set; }
+}
+
+/// <summary>Actions for the PC locking, unlocking, going to sleep and waking. Each is an <see cref="Actions.AppAction"/>.</summary>
+public sealed class PowerRules
+{
+    public string? OnLock { get; set; }
+
+    public string? OnUnlock { get; set; }
+
+    public string? OnSleep { get; set; }
+
+    public string? OnWake { get; set; }
 }
 
 public sealed class MonitorSettings
