@@ -44,10 +44,16 @@ public sealed class AppController : ISwitchboardActions, IAsyncDisposable
 
     /// <summary>
     /// How long after a screens-off switch the app keeps re-sending a switch on that monitor. On 2026-11-21 the MSI
-    /// ignored switches back to the PC sent 1 s and 3 s after the screens came back, and took one sent 30 s after;
-    /// earlier switch-backs that worked were all sent 20 s or more after. The real limit is somewhere in between.
+    /// ignored switches back to the PC sent 1.0, 1.4 and 1.7 s after the screens came back, and took the first one
+    /// sent at 4.4 s (display change at 7.0 s). The window is generous because the limit isn't known exactly.
     /// </summary>
     private static readonly TimeSpan ScreensOffSettle = TimeSpan.FromSeconds(25);
+
+    /// <summary>
+    /// How long after the screens come back another screens-off switch on the same monitor waits before starting.
+    /// Its own sends come 3 s later still, so they land after the 4.4 s at which the MSI took a plain command.
+    /// </summary>
+    private static readonly TimeSpan ScreensOffRestart = TimeSpan.FromSeconds(2);
 
     /// <summary>Per monitor: when it's ready for commands again after a screens-off switch (UTC).</summary>
     private readonly Dictionary<string, DateTime> _settleUntil = new(StringComparer.OrdinalIgnoreCase);
@@ -222,24 +228,26 @@ public sealed class AppController : ISwitchboardActions, IAsyncDisposable
 
     public async Task SwitchAsync(string monitorId, uint value)
     {
-        if (_options.NoSwitch || !_settleUntil.TryGetValue(monitorId, out var until) || DateTime.UtcNow >= until)
+        _settings.Monitors.TryGetValue(monitorId, out var settings);
+        if (_options.NoSwitch || !_settleUntil.TryGetValue(monitorId, out var until) || DateTime.UtcNow >= until
+            || (InputLayout.NeedsScreensOff(settings, value) && DateTime.UtcNow >= until - ScreensOffSettle + ScreensOffRestart))
         {
             await SwitchNowAsync(monitorId, value);
             return;
         }
 
-        // Shortly after a screens-off switch the monitor ignores commands for a while we haven't pinned down (between
-        // 3 and 20 s on the MSI). A plain command it ignores does no harm, so keep sending one every couple of seconds:
-        // it switches as soon as it's ready. Every switch that worked was followed by a display change (Windows sees
-        // the link come back), so that's the sign to stop. Targets that need the screens-off sequence wait instead.
-        // Another click in the meantime changes the target instead of starting a second loop.
+        // Shortly after a screens-off switch the monitor ignores commands for a few seconds (the MSI: ignored at 1.0,
+        // 1.4 and 1.7 s, took one at 4.4 s). A plain command it ignores does no harm, so keep sending one every couple
+        // of seconds: it switches as soon as it's ready. Every switch that worked was followed by a display change
+        // (Windows sees the link come back), so that's the sign to stop. Targets that need the screens-off sequence
+        // wait a moment and then run it. Another click in the meantime changes the target instead of starting a second loop.
         bool alreadyWaiting = _waitingTarget.ContainsKey(monitorId);
         _waitingTarget[monitorId] = value;
         if (alreadyWaiting) return;
 
         string monitorName = MonitorName(monitorId);
         DateTime woke = until - ScreensOffSettle;
-        Log.Info($"{monitorName}: {(DateTime.UtcNow - woke).TotalSeconds:0.0} s after the screens came back, sending {InputCatalog.FormatValue(value)} until it takes it");
+        Log.Info($"{monitorName}: {(DateTime.UtcNow - woke).TotalSeconds:0.0} s after the screens came back, {(InputLayout.NeedsScreensOff(settings, value) ? "holding" : "sending")} {InputCatalog.FormatValue(value)}");
         uint shown = value;
         uint? sent = null;
         DateTime firstSend = DateTime.MaxValue;
@@ -262,9 +270,10 @@ public sealed class AppController : ISwitchboardActions, IAsyncDisposable
 
                 if (InputLayout.NeedsScreensOff(ms, target))
                 {
-                    int seconds = (int)Math.Ceiling((until - DateTime.UtcNow).TotalSeconds);
-                    SetStatus($"{monitorName} needs a moment after the last switch. Switching to {name} in {seconds} s.");
-                    await Task.Delay(TimeSpan.FromSeconds(1));
+                    TimeSpan left = woke + ScreensOffRestart - DateTime.UtcNow;
+                    if (left <= TimeSpan.Zero) break;
+                    SetStatus($"{monitorName} needs a moment after the last switch. Switching to {name} in {(int)Math.Ceiling(left.TotalSeconds)} s.");
+                    await Task.Delay(left < TimeSpan.FromSeconds(1) ? left : TimeSpan.FromSeconds(1));
                     continue;
                 }
 
@@ -272,6 +281,8 @@ public sealed class AppController : ISwitchboardActions, IAsyncDisposable
                 if (sent == target && _lastDisplayChange > firstSend.AddSeconds(0.5) && _lastDisplayChange > woke.AddSeconds(5))
                 {
                     tookIt = true;
+                    // It's listening again, so the next switch needn't wait.
+                    _settleUntil.Remove(monitorId);
                     Log.Info($"{monitorName}: display change {(_lastDisplayChange - woke).TotalSeconds:0.0} s after the screens came back; taking that as switched to {InputCatalog.FormatValue(target)}");
                     break;
                 }
