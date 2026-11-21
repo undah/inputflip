@@ -41,6 +41,22 @@ public sealed class AppController : ISwitchboardActions, IAsyncDisposable
     private string? _settingsProblem;
     private DateTime _lastInputRefresh = DateTime.MinValue;
     private bool _screensOffSwitchRunning;
+
+    /// <summary>
+    /// How long after a screens-off switch the app keeps re-sending a switch on that monitor. On 2026-11-21 the MSI
+    /// ignored switches back to the PC sent 1 s and 3 s after the screens came back, and took one sent 30 s after;
+    /// earlier switch-backs that worked were all sent 20 s or more after. The real limit is somewhere in between.
+    /// </summary>
+    private static readonly TimeSpan ScreensOffSettle = TimeSpan.FromSeconds(25);
+
+    /// <summary>Per monitor: when it's ready for commands again after a screens-off switch (UTC).</summary>
+    private readonly Dictionary<string, DateTime> _settleUntil = new(StringComparer.OrdinalIgnoreCase);
+
+    /// <summary>Per monitor: the input to switch to once it has settled. A newer click replaces it.</summary>
+    private readonly Dictionary<string, uint> _waitingTarget = new(StringComparer.OrdinalIgnoreCase);
+
+    /// <summary>When Windows last reported a display change (UTC).</summary>
+    private DateTime _lastDisplayChange = DateTime.MinValue;
     private int _hotkeySuspensions;
 
     public AppController(DispatcherQueue dispatcher, StartupOptions options)
@@ -94,7 +110,11 @@ public sealed class AppController : ISwitchboardActions, IAsyncDisposable
         // Hidden helper window for global hotkeys, display changes and resume from sleep.
         _host = new HostWindow();
         _host.HotkeyPressed += id => { if (_hotkeyActions.TryGetValue(id, out var action)) _ = action(); };
-        _host.DisplaysChanged += RestartDisplayTimer;
+        _host.DisplaysChanged += () =>
+        {
+            _lastDisplayChange = DateTime.UtcNow;
+            RestartDisplayTimer();
+        };
         _host.Resumed += RestartDisplayTimer;
 
         _window = new MainWindow(this);
@@ -202,6 +222,89 @@ public sealed class AppController : ISwitchboardActions, IAsyncDisposable
 
     public async Task SwitchAsync(string monitorId, uint value)
     {
+        if (_options.NoSwitch || !_settleUntil.TryGetValue(monitorId, out var until) || DateTime.UtcNow >= until)
+        {
+            await SwitchNowAsync(monitorId, value);
+            return;
+        }
+
+        // Shortly after a screens-off switch the monitor ignores commands for a while we haven't pinned down (between
+        // 3 and 20 s on the MSI). A plain command it ignores does no harm, so keep sending one every couple of seconds:
+        // it switches as soon as it's ready. Every switch that worked was followed by a display change (Windows sees
+        // the link come back), so that's the sign to stop. Targets that need the screens-off sequence wait instead.
+        // Another click in the meantime changes the target instead of starting a second loop.
+        bool alreadyWaiting = _waitingTarget.ContainsKey(monitorId);
+        _waitingTarget[monitorId] = value;
+        if (alreadyWaiting) return;
+
+        string monitorName = MonitorName(monitorId);
+        DateTime woke = until - ScreensOffSettle;
+        Log.Info($"{monitorName}: {(DateTime.UtcNow - woke).TotalSeconds:0.0} s after the screens came back, sending {InputCatalog.FormatValue(value)} until it takes it");
+        uint shown = value;
+        uint? sent = null;
+        DateTime firstSend = DateTime.MaxValue;
+        bool tookIt = false;
+        try
+        {
+            while (DateTime.UtcNow < until)
+            {
+                uint target = _waitingTarget[monitorId];
+                if (target != shown)
+                {
+                    if (FindInput(monitorId, shown) is { } old) old.IsBusy = false;
+                    sent = null;
+                    firstSend = DateTime.MaxValue;
+                }
+                shown = target;
+                if (FindInput(monitorId, target) is { } row) row.IsBusy = true;
+                string name = FindInput(monitorId, target)?.Name ?? InputCatalog.GetPortName(target);
+                _settings.Monitors.TryGetValue(monitorId, out var ms);
+
+                if (InputLayout.NeedsScreensOff(ms, target))
+                {
+                    int seconds = (int)Math.Ceiling((until - DateTime.UtcNow).TotalSeconds);
+                    SetStatus($"{monitorName} needs a moment after the last switch. Switching to {name} in {seconds} s.");
+                    await Task.Delay(TimeSpan.FromSeconds(1));
+                    continue;
+                }
+
+                // A display change from the screens waking up comes in the first few seconds; only count later ones.
+                if (sent == target && _lastDisplayChange > firstSend.AddSeconds(0.5) && _lastDisplayChange > woke.AddSeconds(5))
+                {
+                    tookIt = true;
+                    Log.Info($"{monitorName}: display change {(_lastDisplayChange - woke).TotalSeconds:0.0} s after the screens came back; taking that as switched to {InputCatalog.FormatValue(target)}");
+                    break;
+                }
+
+                SetStatus($"Switching {monitorName} to {name}. Right after a switch it takes a few seconds to listen.");
+                await _monitors.SendRepeatedlyAsync(monitorId, target, 1, TimeSpan.Zero);
+                if (sent != target) firstSend = DateTime.UtcNow;
+                sent = target;
+                await Task.Delay(TimeSpan.FromSeconds(2));
+            }
+        }
+        finally
+        {
+            value = _waitingTarget[monitorId];
+            _waitingTarget.Remove(monitorId);
+            if (FindInput(monitorId, shown) is { } row) row.IsBusy = false;
+        }
+
+        if (sent == value)
+        {
+            // Sent right through the window (or it took it): reads over this link can't confirm, so assume it worked.
+            if (!tookIt) Log.Info($"{monitorName}: no display change while sending {InputCatalog.FormatValue(value)}; it may not have switched");
+            _monitors.AssumeInput(monitorId, value);
+            string name = FindInput(monitorId, value)?.Name ?? InputCatalog.GetPortName(value);
+            SetStatus(tookIt ? $"{monitorName} switched to {name}." : $"{monitorName} should now show {name}. If it doesn't, click it again.");
+            RebuildViewModel();
+            return;
+        }
+        await SwitchNowAsync(monitorId, value);
+    }
+
+    private async Task SwitchNowAsync(string monitorId, uint value)
+    {
         var vm = FindInput(monitorId, value);
         string monitorName = MonitorName(monitorId);
         string inputName = vm?.Name ?? InputCatalog.GetPortName(value);
@@ -269,6 +372,7 @@ public sealed class AppController : ISwitchboardActions, IAsyncDisposable
             int accepted = await _monitors.SendRepeatedlyAsync(monitorId, value, 6, TimeSpan.FromMilliseconds(500));
             await Task.Delay(TimeSpan.FromSeconds(1.5));
             HostWindow.WakeScreens();
+            _settleUntil[monitorId] = DateTime.UtcNow + ScreensOffSettle;
 
             if (accepted == 0)
             {
