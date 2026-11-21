@@ -56,7 +56,20 @@ public sealed partial class MainWindow : Window
         {
             if (e.WindowActivationState != WindowActivationState.Deactivated) _controller.OnWindowActivated();
         };
-        Root.Loaded += (_, _) => UpdateCaptionSpace();
+        Root.Loaded += (_, _) =>
+        {
+            UpdateCaptionSpace();
+            // Dragged to a display with other scaling (100% to 150%): the content keeps its size in DIPs,
+            // so the window needs a new size in pixels.
+            double lastScale = Root.XamlRoot.RasterizationScale;
+            Root.XamlRoot.Changed += (_, _) =>
+            {
+                if (Math.Abs(Root.XamlRoot.RasterizationScale - lastScale) < 0.01) return;
+                lastScale = Root.XamlRoot.RasterizationScale;
+                UpdateCaptionSpace();
+                FitToContent();
+            };
+        };
         ViewModel.PropertyChanged += OnViewModelChanged;
         PinButton.IsChecked = ViewModel.AlwaysOnTop;
         // Ctrl+, opens settings, as in many Windows apps. Not a KeyboardAccelerator: WinUI crashes on the comma key

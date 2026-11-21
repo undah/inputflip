@@ -471,7 +471,14 @@ public sealed class InputEditViewModel : ObservableObject
 
     public string ValueText => InputCatalog.FormatValue(Value);
 
-    public string PortName { get => _portName; private set => SetProperty(ref _portName, value); }
+    public string PortName
+    {
+        get => _portName;
+        private set
+        {
+            if (SetProperty(ref _portName, value)) NotifyLabels();
+        }
+    }
 
     public string PortLine => $"{_portName} · {ValueText}";
 
@@ -481,7 +488,10 @@ public sealed class InputEditViewModel : ObservableObject
         get => _name;
         set
         {
-            if (!SetProperty(ref _name, value) || _syncing) return;
+            if (!SetProperty(ref _name, value)) return;
+            // Narrator names of this row's buttons ("Move PS5 up") follow the name.
+            NotifyLabels();
+            if (_syncing) return;
             string? name = string.IsNullOrWhiteSpace(value) || value.Trim() == _portName ? null : value.Trim();
             _monitor.Edit(ms => InputLayout.GetOrAdd(ms, Value).Name = name);
         }
@@ -543,12 +553,17 @@ public sealed class InputEditViewModel : ObservableObject
         _monitor.Edit(ms => SettingsEditor.MoveInput(ms, order, Value, delta));
     }
 
+    private void NotifyLabels()
+    {
+        foreach (var n in new[] { nameof(PortLine), nameof(NameBoxName), nameof(IconBoxName), nameof(ShowBoxName), nameof(MoveUpName), nameof(MoveDownName), nameof(RemoveName) })
+            OnPropertyChanged(n);
+    }
+
     internal void Sync(DisplayInput input, bool canMoveUp, bool canMoveDown, bool canRemove)
     {
         _syncing = true;
         try
         {
-            bool renamed = _name != input.Name || _portName != input.PortName;
             PortName = input.PortName;
             Name = input.Name;
             IconIndex = Math.Max(0, Ui.IconChoices.ToList().FindIndex(c => c.Key == input.Icon));
@@ -557,11 +572,6 @@ public sealed class InputEditViewModel : ObservableObject
             CanMoveUp = canMoveUp;
             CanMoveDown = canMoveDown;
             CanRemove = canRemove;
-            if (renamed)
-            {
-                foreach (var n in new[] { nameof(PortLine), nameof(NameBoxName), nameof(IconBoxName), nameof(ShowBoxName), nameof(MoveUpName), nameof(MoveDownName), nameof(RemoveName) })
-                    OnPropertyChanged(n);
-            }
         }
         finally
         {
