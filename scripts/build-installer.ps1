@@ -64,11 +64,16 @@ try {
     Write-Host "== Leaving out $($unused.Count) unused AI runtime files ($([math]::Round(($unused | Measure-Object Length -Sum).Sum / 1MB)) MB)" -ForegroundColor Cyan
     $unused | Remove-Item
 
+    # vpk refuses to pack a version that's already in releases\, so a second build of the same version would fail.
+    # Releases aren't published and there are no updates to make deltas for, so start from an empty folder.
+    if (Test-Path $releases) { Remove-Item -Recurse -Force $releases }
+
     Run 'Pack with Velopack' {
         vpk pack `
             --packId SwitchboardApp `
             --packVersion $Version `
             --packDir $publish `
+            --runtime win-x64 `
             --mainExe Switchboard.exe `
             --packTitle Switchboard `
             --packAuthors Switchboard `
