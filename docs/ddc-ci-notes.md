@@ -58,7 +58,7 @@ Python alternative for quick tests: the `monitorcontrol` package. Command-line a
 ## The MSI over HDMI (2026-11-21)
 
 Measured with read-only scripts (each display's vertical blank from the graphics card, and the display targets
-`QueryDisplayConfig` reports, every 20 ms) while the owner switched, PS5 on, Switchboard 1.0.6:
+`QueryDisplayConfig` reports, every 20 ms) while the owner switched, PS5 on, with 1.0.6 (still called Switchboard then):
 
 - **The command side is fast:** the command goes out 0 to 8 ms after the key and the MSI reports the new input
   115 to 144 ms after it, on the first read (sometimes the first read is garbled and the second, 300 ms after, confirms).
@@ -75,9 +75,9 @@ Measured with read-only scripts (each display's vertical blank from the graphics
   screen's vertical blank), yet the owner still saw about 5 s of black on all three and 6 to 7 s to the PS5.
 - So the 5 to 6 s can't be shortened from the PC with DDC/CI. What's left is hardware that keeps the hot-plug signal
   up on each input (an HDMI EDID emulator, or a switch with EDID emulation in front of the monitor), untested here; for
-  the PC's input it would have to pass DDC/CI through, or Switchboard loses control of the MSI.
+  the PC's input it would have to pass DDC/CI through, or InputFlip loses control of the MSI.
 - Consequences for the app: Windows moves the mouse onto another screen while the MSI is gone, so 1.0.7 puts it back
-  once the MSI returns; and the MSI's monitor handle dies with the unplug, so a switch in the 1.5 s before Switchboard
+  once the MSI returns; and the MSI's monitor handle dies with the unplug, so a switch in the 1.5 s before InputFlip
   finds the monitors again fails, and 1.0.7 finds them at once and retries.
 - **Port and refresh rate:** the owner's RTX 4070 has one HDMI port and three DisplayPort ports. Through a DP-to-HDMI
   cable, Windows reports the connection as DVI (`outputTechnology` 4; NVIDIA exposes each DisplayPort port as a
@@ -86,9 +86,9 @@ Measured with read-only scripts (each display's vertical blank from the graphics
 
 ## Which inputs have something connected?
 
-DDC/CI can't tell. MCCS has no "signal present" code per input: VCP `0x60` reports only the input on screen, and the capabilities string lists what the model family supports (see above), not what's plugged in. Probing by switching to each input and watching whether auto input switching jumps back would blank the screen, so Switchboard doesn't do it.
+DDC/CI can't tell. MCCS has no "signal present" code per input: VCP `0x60` reports only the input on screen, and the capabilities string lists what the model family supports (see above), not what's plugged in. Probing by switching to each input and watching whether auto input switching jumps back would blank the screen, so InputFlip doesn't do it.
 
-What *can* be known is this PC's own input: Windows reports the cable type (`QueryDisplayConfig` output technology), and only some of the monitor's ports fit it. On the owner's PC (2026-11-21) Windows reports the MSI as DisplayPort (`10`), Acer `0673` as HDMI (`5`) and Acer `06F0` as DVI (`4`, a DVI-to-HDMI cable into an HDMI port). So DVI has to count as HDMI, and the two-HDMI-port Acer needs a tie-breaker (the input on screen when first seen). Switchboard tags that input "This PC" (`Settings/PcInputDetector.cs`).
+What *can* be known is this PC's own input: Windows reports the cable type (`QueryDisplayConfig` output technology), and only some of the monitor's ports fit it. On the owner's PC (2026-11-21) Windows reports the MSI as DisplayPort (`10`), Acer `0673` as HDMI (`5`) and Acer `06F0` as DVI (`4`, a DVI-to-HDMI cable into an HDMI port). So DVI has to count as HDMI, and the two-HDMI-port Acer needs a tie-breaker (the input on screen when first seen). InputFlip tags that input "This PC" (`Settings/PcInputDetector.cs`).
 
 ## DisplayPort
 
@@ -98,7 +98,7 @@ DDC/CI over DisplayPort is often less reliable than over HDMI. "Works on HDMI, n
 - GPU drivers matter. On DisplayPort, DDC/CI goes through the driver's I2C-over-AUX path, and NVIDIA driver versions have broken DDC/CI for some monitors ([NVIDIA forum](https://forums.developer.nvidia.com/t/gddccontrol-issues-with-nvidia-drivers-i2c-monitor-display-ddc-dp-hdmi-failing/30427?page=4)).
 - Docks, MST hubs, KVMs and adapters can block it.
 
-The owner's MSI G27CQ4 is a partial case: on DisplayPort some reads work with correct values, but commands have no effect *while it shows DisplayPort*. On 2026-11-20 it did switch from HDMI (PS5) to DisplayPort after commands sent over DisplayPort while it was showing HDMI; see [plan.md](plan.md), stage 1. Working theory: it accepts DisplayPort DDC/CI only when that input isn't on screen. Confirmed the same evening: with all screens turned off by Windows (`SC_MONITORPOWER`, no picture on the cable, monitor still connected), it accepted `60 = 12` over DisplayPort and switched to HDMI 2. Switchboard uses this as the `blankScreensWhenLeaving` setting. It works fully on HDMI.
+The owner's MSI G27CQ4 is a partial case: on DisplayPort some reads work with correct values, but commands have no effect *while it shows DisplayPort*. On 2026-11-20 it did switch from HDMI (PS5) to DisplayPort after commands sent over DisplayPort while it was showing HDMI; see [plan.md](plan.md), stage 1. Working theory: it accepts DisplayPort DDC/CI only when that input isn't on screen. Confirmed the same evening: with all screens turned off by Windows (`SC_MONITORPOWER`, no picture on the cable, monitor still connected), it accepted `60 = 12` over DisplayPort and switched to HDMI 2. InputFlip uses this as the `blankScreensWhenLeaving` setting. It works fully on HDMI.
 
 Timed on 2026-11-21: screens dark for 4.3 s (first send at 2.75 s) switched it 5 times in 5, down from 7.4 s. The MSI may in fact switch by itself once DisplayPort goes dark (it once switched with every send failing). The weak part is the way back: after some switches the MSI's replies over DisplayPort turn garbled, and then plain commands back to the PC are ignored until someone uses its button. When it answers `0x11` cleanly after the switch, the way back works. Run these tests from Windows PowerShell: from the Claude terminal the screens-off switch failed most rounds, for reasons not understood. No firmware update is offered for the G27CQ4 (MSI support page, checked 2026-11-21: no Firmware tab; MSI's DisplayPort flashing tool covers only some QD-OLED models). Details and timings in [plan.md](plan.md), stage 1.
 

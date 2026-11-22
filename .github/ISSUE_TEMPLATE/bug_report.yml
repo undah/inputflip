@@ -1,0 +1,41 @@
+name: Bug report
+description: Something doesn't work as it should.
+labels: ["bug"]
+body:
+  - type: textarea
+    id: what
+    attributes:
+      label: What happened
+      description: What you did, what you expected, and what happened instead.
+    validations:
+      required: true
+  - type: input
+    id: version
+    attributes:
+      label: InputFlip version
+      description: Settings › About.
+      placeholder: "1.1.0"
+    validations:
+      required: true
+  - type: input
+    id: windows
+    attributes:
+      label: Windows version
+      placeholder: Windows 11 24H2
+  - type: input
+    id: monitors
+    attributes:
+      label: Monitors and cables
+      placeholder: MSI G27CQ4 over HDMI, Acer VG240Y over DisplayPort
+  - type: textarea
+    id: diagnostics
+    attributes:
+      label: Diagnostics
+      description: Settings › About › Diagnostics › Copy all.
+      render: text
+  - type: textarea
+    id: log
+    attributes:
+      label: Log
+      description: Settings › About › Open log. The lines around the problem are enough.
+      render: text

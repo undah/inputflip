@@ -1,0 +1,8 @@
+blank_issues_enabled: true
+contact_links:
+  - name: User guide
+    url: https://github.com/undah/inputflip/blob/main/docs/user-guide.md
+    about: How every window, setting and feature works.
+  - name: Troubleshooting and FAQ
+    url: https://github.com/undah/inputflip#troubleshooting
+    about: The common problems (DDC/CI off, DisplayPort, docks) and what to try.

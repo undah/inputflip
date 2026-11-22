@@ -1,0 +1,15 @@
+name: Idea
+description: Suggest a feature or an improvement.
+labels: ["idea"]
+body:
+  - type: textarea
+    id: problem
+    attributes:
+      label: What are you trying to do?
+      description: Your setup and what's awkward today. "I switch between my PC and my Switch twice a day and..."
+    validations:
+      required: true
+  - type: textarea
+    id: idea
+    attributes:
+      label: What would help?

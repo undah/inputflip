@@ -1,0 +1,61 @@
+name: Monitor report
+description: Tell us how InputFlip works (or doesn't) with your monitor. Goes into the compatibility list.
+title: "Monitor: "
+labels: ["monitor report"]
+body:
+  - type: markdown
+    attributes:
+      value: |
+        Thanks! Reports of monitors that **don't** work are just as useful. Settings › About › Diagnostics › Copy shows
+        most of what's asked below.
+  - type: input
+    id: model
+    attributes:
+      label: Monitor model
+      placeholder: Dell S2721DGF
+    validations:
+      required: true
+  - type: dropdown
+    id: result
+    attributes:
+      label: Does switching work?
+      options:
+        - Yes, both ways (away from the PC and back)
+        - Away from the PC only; it doesn't switch back
+        - Not at all
+        - It doesn't answer DDC/CI ("Not answering")
+    validations:
+      required: true
+  - type: dropdown
+    id: cable
+    attributes:
+      label: Cable from the PC
+      options:
+        - HDMI
+        - DisplayPort
+        - USB-C / Thunderbolt
+        - DVI
+        - Through a dock, hub, adapter or KVM
+    validations:
+      required: true
+  - type: input
+    id: gpu
+    attributes:
+      label: Graphics card
+      placeholder: NVIDIA RTX 4070, AMD RX 7800 XT, Intel Arc, laptop iGPU...
+  - type: input
+    id: devices
+    attributes:
+      label: What's on the other inputs?
+      placeholder: PS5 on HDMI 1, work laptop on USB-C
+  - type: textarea
+    id: diagnostics
+    attributes:
+      label: Diagnostics
+      description: Settings › About › Diagnostics › Copy (the capabilities string lists the monitor's inputs).
+      render: text
+  - type: textarea
+    id: notes
+    attributes:
+      label: Anything else
+      description: How long the picture takes to come back, settings you changed in the monitor's menu (DDC/CI, auto input), quirks.

@@ -1,4 +1,4 @@
-# Plan
+# Plan and history
 
 Three stages. Each one ends with a clear "done when" check before moving on.
 
@@ -400,33 +400,62 @@ second put-back had nothing to do; the retry after a display change wasn't neede
 **Goal (owner):** new features, a look of its own, and a public, well-documented open-source repo that people searching
 for a monitor input switcher can find.
 
-**Owner's choices (2026-11-21, 20:20):**
+**Owner's choices (2026-11-21, 20:20, and 2026-11-22):**
 
-- **Name: InputFlip** ("Switchboard" is the name of 2,300 GitHub repos; "InputFlip" of none). What people see changes
-  (window title, Start menu, installer, repo name). What keeps settings and updates working stays: the Velopack pack id
-  `SwitchboardApp`, the data folder `%LOCALAPPDATA%\Switchboard`, the `Switchboard` start-with-Windows entry.
+- **Name: InputFlip** ("Switchboard" is the name of 2,300 GitHub repos; "InputFlip" of none). Everything people see is
+  InputFlip: window titles, Start menu, the exe (`InputFlip.exe`), the code (`src/InputFlip`, namespaces `InputFlip.*`),
+  the repo (`undah/inputflip`). Kept so 1.0 installs keep working: the Velopack pack id `SwitchboardApp` (install
+  folder `%LOCALAPPDATA%\SwitchboardApp`), and the data folder `%LOCALAPPDATA%\Switchboard` where it has settings
+  (new installs use `%LOCALAPPDATA%\InputFlip`). The start-with-Windows value moves from `Switchboard` to `InputFlip`.
 - **Licence: MIT.**
 - **Look: "Tiles"** (picked from three mockups: Signal, Tiles, Studio). Each input is a big tile with its icon; tiles
   flip when you switch. First built in coral on plum; **the owner asked for a clean blue instead (2026-11-22)**: the
   input showing now is blue `#2563EB` with white text, on near-black `#10141B` (dark) or `#F7F9FC` (light). The blue
-  also replaces the Windows accent color in standard controls.
-- **Features: all eight offered.**
-  - [ ] Scenes: one click or key switches several monitors at once
-  - [ ] Command line and `inputflip://` links (scripts, desktop shortcuts, AutoHotkey, Stream Deck)
-  - [ ] USB auto-switch: a USB device plugging in or leaving switches a monitor (a USB switch box becomes a KVM)
-  - [ ] Pop-up picker by the mouse, and a short toast on a screen that still shows the PC
-  - [ ] Brightness and contrast per monitor (and a brightness level in scenes)
-  - [ ] Monitor speaker volume and mute
-  - [ ] Tray icon as well as the window
-  - [ ] Switch on sleep or lock, and back on wake (optional, off by default)
-- [ ] New look and icon
-- [ ] Docs: README, user guide, compatibility list, CONTRIBUTING, CODE_OF_CONDUCT, SECURITY, issue and PR templates
+  also replaces the Windows accent color in standard controls. Owner also flagged the logo as low quality: it's now
+  drawn as vector shapes in the UI (`Controls/LogoMark.xaml`).
+- **Releases on GitHub** (2026-11-22; before, the Update button read this PC's `releases\` folder). Installed copies
+  check https://github.com/undah/inputflip/releases; `build-installer.ps1 -Publish` creates a release.
+- **History:** author email rewritten to the GitHub noreply address before going public; old branch
+  `stage1-probe-script` (fully in `main`) deleted; repo renamed `undah/switchboard` → `undah/inputflip`.
+
+**Features (all eight offered were picked):**
+
+- [x] Scenes: one click, key, picker entry or command switches several monitors (and sets brightness); again goes back
+- [x] Command line and `inputflip://` links (scripts, desktop shortcuts, AutoHotkey, Stream Deck), sent to the running
+      copy over a named pipe; `--list`; exit codes 0/1/2
+- [x] USB rules: a USB device plugging in or leaving switches a monitor or runs a scene (software KVM)
+- [x] Pop-up picker by the mouse (`Ctrl+Alt+Shift+P`), and a short note after a switch on a screen that didn't switch
+- [x] Brightness and contrast per monitor (sun button), brightness in scenes
+- [x] Monitor speaker volume and mute, where the capabilities string lists them
+- [x] Tray icon with scenes and inputs in its menu; optional close to the tray
+- [x] Lock, unlock, sleep and wake rules (off by default)
+- [x] New look and icon (blue tiles; two tiles on blue for the icon)
+- [x] Docs: README (search terms, FAQ, alternatives), user guide, command line, compatibility list, CONTRIBUTING,
+      CODE_OF_CONDUCT, SECURITY, issue forms, PR template, CI workflow, architecture
 - [ ] History audit, owner's OK, repo public with description and topics
-- [ ] Shipped as a new version through the Update button
+- [ ] Shipped as 1.1.0 through the Update button, and published as a GitHub release
+
+**Checked without the owner (2026-11-22):** 173 unit tests; build with no warnings; a `--data-dir --no-switch` copy
+on the real monitors: the main window in dark and light, the Scenes and About pages, `--list`, `--switch` with an
+unknown input (exit 1), `--brightness 150` (exit 2), `--switch` refused under `--no-switch`.
+
+**Not checked yet (needs the owner, since it switches monitors or changes the PC):**
+
+- [ ] A scene from its pill, its shortcut and the picker; pressing it again goes back
+- [ ] `InputFlip.exe --switch MSI PS5` and `inputflip://toggle` from a browser or Stream Deck
+- [ ] The tray menu, and close to the tray
+- [ ] The note after a switch shows on an Acer, not the MSI
+- [ ] Brightness slider on an Acer; volume on a monitor with speakers (none here)
+- [ ] A USB rule with a real USB device; lock and unlock rules
+- [ ] The update from 1.0.7: Start menu shortcut and start-with-Windows still work after the exe rename
 
 ## Later (ideas)
 
 Each roughly half a day to a day:
 
+- Some LG monitors: send input commands on their own DDC/CI address (0x50) through NVIDIA NVAPI or AMD ADL I2C
+- Code signing, so SmartScreen stops warning
+- ARM64 build (the project already has the platform)
+- Translations
 - Control an external HDMI switch (USB / RS-232 / IR / network) for monitors that can't switch back
 - Arduino or IR-blaster support as a last-resort workaround

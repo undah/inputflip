@@ -10,8 +10,12 @@
     releases\InputFlip-Portable.zip   the same app without installing
     releases\*.nupkg, releases.*.json what the Update button reads
 
-  releases\ is also where the installed app's Update button looks (the path is baked into the build; settings.json's
-  "updateSource" overrides it). So on this PC: bump <Version>, run this script, click Update in the app.
+  Installed copies look for updates on GitHub (https://github.com/undah/inputflip/releases). To ship a version:
+  bump <Version> in src\InputFlip\InputFlip.csproj, run this script with -Publish (it creates the GitHub release
+  v<Version> with these files, using the gh command line), and installed copies offer the Update button.
+
+  -LocalUpdates builds a copy whose Update button reads this PC's releases\ folder instead (settings.json's
+  "updateSource" overrides either), to try an update before publishing it.
 
   The installer puts InputFlip in %LOCALAPPDATA%\SwitchboardApp and adds Start menu and desktop shortcuts. The pack id
   is still "SwitchboardApp" (the app's name before 1.1) so installed copies keep updating; Velopack only updates an
@@ -25,10 +29,21 @@
 
 .EXAMPLE
   powershell -ExecutionPolicy Bypass -File .\scripts\build-installer.ps1
+  Builds releases\ only.
+
+.EXAMPLE
+  powershell -ExecutionPolicy Bypass -File .\scripts\build-installer.ps1 -Publish
+  Builds, then publishes the GitHub release (needs `gh auth login` first).
 #>
 param(
     # Defaults to <Version> in src\InputFlip\InputFlip.csproj.
-    [string]$Version
+    [string]$Version,
+
+    # The built app's Update button reads this PC's releases\ folder instead of GitHub.
+    [switch]$LocalUpdates,
+
+    # After building, create GitHub release v<Version> with the installer, the portable zip and the update files.
+    [switch]$Publish
 )
 
 $ErrorActionPreference = 'Stop'
@@ -59,8 +74,9 @@ try {
 
     if (Test-Path $publish) { Remove-Item -Recurse -Force $publish }
     Run "Publish $Version (Release, self-contained, win-x64)" {
-        # UpdateSource: the app's update button looks in this releases folder (settings.json's updateSource overrides it).
-        dotnet publish $project -c Release -r win-x64 -p:Platform=x64 --self-contained -p:Version=$Version "-p:UpdateSource=$releases" -o $publish --nologo
+        # UpdateSource: with -LocalUpdates, the app's Update button looks in this releases folder; otherwise on GitHub.
+        $updateSource = if ($LocalUpdates) { "-p:UpdateSource=$releases" } else { "-p:UpdateSource=" }
+        dotnet publish $project -c Release -r win-x64 -p:Platform=x64 --self-contained -p:Version=$Version $updateSource -o $publish --nologo
     }
 
     # The Windows App SDK brings its on-device AI runtime (onnxruntime, DirectML, Microsoft.Windows.AI.*), about
@@ -96,6 +112,16 @@ try {
 
     Write-Host ''
     Write-Host "Installer: $(Join-Path $releases 'InputFlip-Setup.exe')" -ForegroundColor Green
+
+    if ($Publish) {
+        if (-not (Get-Command gh -ErrorAction SilentlyContinue)) { throw "Publishing needs the GitHub command line: winget install GitHub.cli, then gh auth login." }
+        # Everything the Update button and people need, without the two files that only differ in name.
+        $assets = Get-ChildItem $releases -File | Where-Object { $_.Name -notmatch '^SwitchboardApp-win-(Setup\.exe|Portable\.zip)$' } | ForEach-Object { $_.FullName }
+        $notes = Join-Path $repo "docs\release-notes\v$Version.md"
+        $notesArgs = if (Test-Path $notes) { @('--notes-file', $notes) } else { @('--notes', "InputFlip $Version. Download InputFlip-Setup.exe and run it.") }
+        Run "Publish GitHub release v$Version" { gh release create "v$Version" @assets --title "InputFlip $Version" @notesArgs --repo undah/inputflip }
+        Write-Host "Published: https://github.com/undah/inputflip/releases/tag/v$Version" -ForegroundColor Green
+    }
 }
 finally {
     Pop-Location

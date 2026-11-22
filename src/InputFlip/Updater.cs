@@ -28,9 +28,9 @@ public enum UpdateState
 public sealed record UpdateCheck(UpdateState State, string? NewVersion, string Message);
 
 /// <summary>
-/// Checks for and installs new versions with Velopack. The source is a folder (or web address) holding Velopack
-/// releases: settings.json's updateSource if set, else the releases folder the installer was built in
-/// (scripts/build-installer.ps1 bakes that path in as assembly metadata). Updates are full packages; no deltas.
+/// Checks for and installs new versions with Velopack. The source, first that's set: settings.json's updateSource (a
+/// folder or web address), a folder baked in by scripts/build-installer.ps1 -LocalUpdates (for testing an update on
+/// the PC that builds it), else the project's GitHub releases. Updates are full packages; no deltas.
 /// </summary>
 internal sealed class Updater
 {
@@ -43,6 +43,9 @@ internal sealed class Updater
         .GetCustomAttributes<AssemblyMetadataAttribute>()
         .FirstOrDefault(a => a.Key == "UpdateSource")?.Value is { Length: > 0 } value ? value : null;
 
+    /// <summary>Where published versions are: the GitHub repo's releases.</summary>
+    public const string DefaultSource = "https://github.com/undah/inputflip";
+
     public UpdateCheck Last { get; private set; } = new(UpdateState.Unknown, null, "");
 
     public async Task<UpdateCheck> CheckAsync(string? configuredSource)
@@ -53,9 +56,7 @@ internal sealed class Updater
 
     private UpdateCheck Check(string? configuredSource)
     {
-        string? source = string.IsNullOrWhiteSpace(configuredSource) ? BuiltInSource : configuredSource.Trim();
-        if (source is null)
-            return new(UpdateState.NoSource, null, "No update folder is set. Add \"updateSource\" to the settings file.");
+        string source = string.IsNullOrWhiteSpace(configuredSource) ? BuiltInSource ?? DefaultSource : configuredSource.Trim();
 
         bool isWeb = source.StartsWith("http://", StringComparison.OrdinalIgnoreCase) || source.StartsWith("https://", StringComparison.OrdinalIgnoreCase);
         if (!isWeb)
@@ -69,7 +70,10 @@ internal sealed class Updater
         {
             if (_manager is null || _managerSource != source)
             {
-                _manager = new UpdateManager(source);
+                // A GitHub repo: Velopack reads its releases through GitHub's API. Anything else: a folder or a plain web folder.
+                _manager = IsGitHub(source)
+                    ? new UpdateManager(new Velopack.Sources.GithubSource(source.TrimEnd('/'), accessToken: null, prerelease: false))
+                    : new UpdateManager(source);
                 _managerSource = source;
             }
             if (!_manager.IsInstalled)
@@ -86,9 +90,14 @@ internal sealed class Updater
         catch (Exception ex)
         {
             Log.Error($"Checking for updates in {source} failed", ex);
-            return new(UpdateState.Failed, null, "Couldn't check for updates. The log has the details.");
+            return new(UpdateState.Failed, null, IsGitHub(source)
+                ? "Couldn't reach GitHub to check for updates. Check the internet connection, then try again."
+                : "Couldn't check for updates. The log has the details.");
         }
     }
+
+    private static bool IsGitHub(string source) =>
+        source.StartsWith("https://github.com/", StringComparison.OrdinalIgnoreCase);
 
     /// <summary>Downloads the pending update, then closes the app, installs it and starts the new version.</summary>
     public async Task<string?> InstallAsync(Action<int>? progress)
