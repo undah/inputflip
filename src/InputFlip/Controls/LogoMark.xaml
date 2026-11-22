@@ -1,0 +1,23 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- The InputFlip logo drawn as shapes, so it's sharp at any size and display scaling. Same geometry as the app icon
+     (Core/Branding/IconArt.cs): on a 100-unit square, the tiles sit in the middle 76%. An Image of the .ico was blurry:
+     WinUI picks one small frame from the file and stretches it. Set Width and Height where it's used. -->
+<UserControl
+    x:Class="InputFlip.Controls.LogoMark"
+    xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+    xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+    IsTabStop="False"
+    AutomationProperties.AccessibilityView="Raw">
+    <Viewbox Stretch="Uniform">
+        <Canvas Width="100" Height="100">
+            <!-- The blue square. -->
+            <Rectangle Canvas.Left="2" Canvas.Top="2" Width="96" Height="96" RadiusX="21" RadiusY="21" Fill="#2563EB" />
+            <!-- The pale tile behind. -->
+            <Rectangle Canvas.Left="15.04" Canvas.Top="15.04" Width="45.6" Height="45.6" RadiusX="10.64" RadiusY="10.64" Fill="#A9C4FA" />
+            <!-- A ring of blue around the front tile keeps the two apart. -->
+            <Rectangle Canvas.Left="33.28" Canvas.Top="33.28" Width="57.76" Height="57.76" RadiusX="15.2" RadiusY="15.2" Fill="#2563EB" />
+            <!-- The white tile in front. -->
+            <Rectangle Canvas.Left="39.36" Canvas.Top="39.36" Width="45.6" Height="45.6" RadiusX="10.64" RadiusY="10.64" Fill="White" />
+        </Canvas>
+    </Viewbox>
+</UserControl>

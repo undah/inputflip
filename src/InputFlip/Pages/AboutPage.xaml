@@ -12,7 +12,7 @@
         <TextBlock Text="About" Style="{StaticResource PageTitleStyle}" />
 
         <Grid ColumnDefinitions="Auto,*" ColumnSpacing="16" Margin="0,4,0,8">
-            <Image Source="ms-appx:///Assets/InputFlip.ico" Width="48" Height="48" VerticalAlignment="Center" AutomationProperties.AccessibilityView="Raw" />
+            <controls:LogoMark Width="48" Height="48" VerticalAlignment="Center" />
             <StackPanel Grid.Column="1" VerticalAlignment="Center">
                 <TextBlock Text="InputFlip" Style="{StaticResource SubtitleTextBlockStyle}" />
                 <TextBlock Text="{x:Bind ViewModel.Version}" Style="{StaticResource DescriptionStyle}" IsTextSelectionEnabled="True" />

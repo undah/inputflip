@@ -10,7 +10,7 @@
 
     <Grid x:Name="Root" RowDefinitions="Auto,Auto,*,Auto" Background="{ThemeResource IfBackgroundBrush}">
         <Grid x:Name="TitleArea" Height="48" Background="Transparent" ColumnDefinitions="Auto,*" ColumnSpacing="12" Padding="16,0,0,0">
-            <Image Source="ms-appx:///Assets/InputFlip.ico" Width="16" Height="16" VerticalAlignment="Center" AutomationProperties.AccessibilityView="Raw" />
+            <controls:LogoMark Width="16" Height="16" VerticalAlignment="Center" />
             <TextBlock Grid.Column="1" Text="Set up InputFlip" Style="{StaticResource CaptionTextBlockStyle}" VerticalAlignment="Center" />
         </Grid>
 
