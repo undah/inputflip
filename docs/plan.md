@@ -433,7 +433,12 @@ for a monitor input switcher can find.
 - [x] Docs: README (search terms, FAQ, alternatives), user guide, command line, compatibility list, CONTRIBUTING,
       CODE_OF_CONDUCT, SECURITY, issue forms, PR template, CI workflow, architecture
 - [x] History audit, owner's OK (2026-11-22), repo public at https://github.com/undah/inputflip with description, 20 topics and private vulnerability reporting; author email rewritten to the noreply address (60 commits, same tree), `stage1-probe-script` deleted
-- [ ] Shipped as 1.1.0 through the Update button, and published as a GitHub release
+- [x] Shipped as 1.1.0: GitHub release v1.1.0 (https://github.com/undah/inputflip/releases/tag/v1.1.0), CI green. Owner updated
+      from 1.0.7 with the Update button at 11:42:55 (2026-11-22); 1.1.0 started at 11:42:58 on the old data folder
+      (`%LOCALAPPDATA%Switchboard`, log now `inputflip.log`). Velopack renamed the Start menu and desktop shortcuts to
+      InputFlip, pointing at `currentInputFlip.exe`; the old `Switchboard.exe` launcher stays in the install root
+      (harmless: it starts whatever is in `current`). `inputflip://` links registered; start with Windows was off and
+      still is.
 
 **Checked without the owner (2026-11-22):** 173 unit tests; build with no warnings; a `--data-dir --no-switch` copy
 on the real monitors: the main window in dark and light, the Scenes and About pages, `--list`, `--switch` with an
@@ -447,7 +452,7 @@ unknown input (exit 1), `--brightness 150` (exit 2), `--switch` refused under `-
 - [ ] The note after a switch shows on an Acer, not the MSI
 - [ ] Brightness slider on an Acer; volume on a monitor with speakers (none here)
 - [ ] A USB rule with a real USB device; lock and unlock rules
-- [ ] The update from 1.0.7: Start menu shortcut and start-with-Windows still work after the exe rename
+- [x] The update from 1.0.7: shortcuts and links checked after the exe rename (2026-11-22)
 
 ## Later (ideas)
 
