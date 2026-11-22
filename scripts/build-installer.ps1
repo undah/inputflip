@@ -49,7 +49,7 @@ param(
 $ErrorActionPreference = 'Stop'
 $repo = Split-Path -Parent $PSScriptRoot
 $project = Join-Path $repo 'src\InputFlip\InputFlip.csproj'
-$publish = Join-Path $repo 'publish\win-x64'
+$publishDir = Join-Path $repo 'publish\win-x64'
 $releases = Join-Path $repo 'releases'
 
 if (-not $Version) {
@@ -72,17 +72,17 @@ Push-Location $repo
 try {
     Run 'Tests' { dotnet test --nologo -v q }
 
-    if (Test-Path $publish) { Remove-Item -Recurse -Force $publish }
+    if (Test-Path $publishDir) { Remove-Item -Recurse -Force $publishDir }
     Run "Publish $Version (Release, self-contained, win-x64)" {
         # UpdateSource: with -LocalUpdates, the app's Update button looks in this releases folder; otherwise on GitHub.
         $updateSource = if ($LocalUpdates) { "-p:UpdateSource=$releases" } else { "-p:UpdateSource=" }
-        dotnet publish $project -c Release -r win-x64 -p:Platform=x64 --self-contained -p:Version=$Version $updateSource -o $publish --nologo
+        dotnet publish $project -c Release -r win-x64 -p:Platform=x64 --self-contained -p:Version=$Version $updateSource -o $publishDir --nologo
     }
 
     # The Windows App SDK brings its on-device AI runtime (onnxruntime, DirectML, Microsoft.Windows.AI.*), about
     # 42 MB that InputFlip never loads. Checked on 2026-11-21: the app runs without it (main window, setup,
     # every settings page). If a future Windows App SDK fails to start without them, delete these lines.
-    $unused = Get-ChildItem $publish -File | Where-Object { $_.Name -match '^(onnxruntime|DirectML)\.dll$|^Microsoft\.Windows\.AI\.|^Microsoft\.ML\.' }
+    $unused = Get-ChildItem $publishDir -File | Where-Object { $_.Name -match '^(onnxruntime|DirectML)\.dll$|^Microsoft\.Windows\.AI\.|^Microsoft\.ML\.' }
     Write-Host "== Leaving out $($unused.Count) unused AI runtime files ($([math]::Round(($unused | Measure-Object Length -Sum).Sum / 1MB)) MB)" -ForegroundColor Cyan
     $unused | Remove-Item
 
@@ -95,7 +95,7 @@ try {
         vpk pack `
             --packId SwitchboardApp `
             --packVersion $Version `
-            --packDir $publish `
+            --packDir $publishDir `
             --runtime win-x64 `
             --mainExe InputFlip.exe `
             --packTitle InputFlip `
