@@ -4,16 +4,19 @@ using System.IO.Compression;
 namespace Switchboard.Core.Branding;
 
 /// <summary>
-/// The app icon (a white monitor with two arrows on a blue rounded square), drawn at any pixel size with
-/// 4x4 supersampling. Used for the window icon at run time and to write Assets/Switchboard.ico.
+/// The app icon: two tiles on a blue rounded square, a pale one behind and a white one flipped to the front, like the
+/// input tiles in the window. Drawn at any pixel size with 4x4 supersampling. Used for the window and tray icon at run
+/// time and to write Assets/Switchboard.ico.
 /// </summary>
 public static class IconArt
 {
     /// <summary>Sizes in the .ico file: taskbar, title bar, Explorer and Start at 100% to 300% scaling.</summary>
     public static readonly int[] IcoSizes = [16, 20, 24, 32, 40, 48, 64, 256];
 
-    // Windows blue, the same in light and dark mode, so the icon reads on any taskbar.
-    private const byte BgR = 0x00, BgG = 0x67, BgB = 0xC0;
+    // The app's blue (#2563EB, the input showing now), the same in light and dark mode, so it reads on any taskbar.
+    private static readonly (int R, int G, int B) Background = (0x25, 0x63, 0xEB);
+    private static readonly (int R, int G, int B) BackTile = (0xA9, 0xC4, 0xFA);
+    private static readonly (int R, int G, int B) FrontTile = (0xFF, 0xFF, 0xFF);
 
     /// <summary>Premultiplied BGRA pixels, top row first, as 0xAARRGGBB.</summary>
     public static uint[] Render(int size)
@@ -24,27 +27,32 @@ public static class IconArt
         {
             for (int x = 0; x < size; x++)
             {
-                int bg = 0, fg = 0;
+                int covered = 0, r = 0, g = 0, b = 0;
                 for (int sy = 0; sy < ss; sy++)
                 {
                     for (int sx = 0; sx < ss; sx++)
                     {
                         double u = (x + (sx + 0.5) / ss) / size, v = (y + (sy + 0.5) / ss) / size;
                         if (!RoundRect(u, v, 0.02, 0.02, 0.98, 0.98, 0.22)) continue;
-                        bg++;
-                        // The glyph sits inside the square at 70% size.
-                        if (Glyph((u - 0.15) / 0.7, (v - 0.15) / 0.7)) fg++;
+                        covered++;
+                        // The tiles sit inside the square at 76% size.
+                        var c = Glyph((u - 0.12) / 0.76, (v - 0.12) / 0.76) switch
+                        {
+                            2 => FrontTile,
+                            1 => BackTile,
+                            _ => Background,
+                        };
+                        r += c.R;
+                        g += c.G;
+                        b += c.B;
                     }
                 }
-                if (bg == 0) continue;
+                if (covered == 0) continue;
                 const int total = ss * ss;
-                uint alpha = (uint)(255 * bg / total);
-                // Blend the white glyph over the blue within the covered area, then premultiply.
-                double f = (double)fg / bg;
-                uint r = (uint)((BgR + (255 - BgR) * f) * alpha / 255);
-                uint g = (uint)((BgG + (255 - BgG) * f) * alpha / 255);
-                uint b = (uint)((BgB + (255 - BgB) * f) * alpha / 255);
-                pixels[y * size + x] = (alpha << 24) | (r << 16) | (g << 8) | b;
+                uint alpha = (uint)(255 * covered / total);
+                // Average the covered samples, then premultiply by the coverage.
+                uint pr = (uint)(r / covered * alpha / 255), pg = (uint)(g / covered * alpha / 255), pb = (uint)(b / covered * alpha / 255);
+                pixels[y * size + x] = (alpha << 24) | (pr << 16) | (pg << 8) | pb;
             }
         }
         return pixels;
@@ -138,19 +146,14 @@ public static class IconArt
         return crc;
     }
 
-    // Monitor with two arrows, in unit coordinates (0..1, y down).
-    private static bool Glyph(double x, double y)
+    // Two tiles in unit coordinates (0..1, y down): 0 = background, 1 = the pale tile behind, 2 = the white tile in front.
+    // A ring of background around the front tile keeps the two apart at 16 px.
+    private static int Glyph(double x, double y)
     {
-        bool outer = RoundRect(x, y, 0.06, 0.12, 0.94, 0.70, 0.09);
-        bool inner = RoundRect(x, y, 0.15, 0.21, 0.85, 0.61, 0.03);
-        if (outer && !inner) return true;
-        if (x is >= 0.45 and <= 0.55 && y is >= 0.70 and <= 0.82) return true;
-        if (RoundRect(x, y, 0.28, 0.81, 0.72, 0.90, 0.04)) return true;
-        if (x is >= 0.30 and <= 0.60 && y is >= 0.315 and <= 0.375) return true;
-        if (Triangle(x, y, 0.58, 0.27, 0.58, 0.42, 0.72, 0.345)) return true;
-        if (x is >= 0.40 and <= 0.70 && y is >= 0.455 and <= 0.515) return true;
-        if (Triangle(x, y, 0.42, 0.41, 0.42, 0.56, 0.28, 0.485)) return true;
-        return false;
+        if (RoundRect(x, y, 0.36, 0.36, 0.96, 0.96, 0.14)) return 2;
+        if (RoundRect(x, y, 0.28, 0.28, 1.04, 1.04, 0.20)) return 0;
+        if (RoundRect(x, y, 0.04, 0.04, 0.64, 0.64, 0.14)) return 1;
+        return 0;
     }
 
     private static bool RoundRect(double x, double y, double l, double t, double r, double b, double radius)
@@ -160,15 +163,5 @@ public static class IconArt
         double cy = Math.Clamp(y, t + radius, b - radius);
         double dx = x - cx, dy = y - cy;
         return dx * dx + dy * dy <= radius * radius;
-    }
-
-    private static bool Triangle(double x, double y, double x1, double y1, double x2, double y2, double x3, double y3)
-    {
-        double d1 = (x - x2) * (y1 - y2) - (x1 - x2) * (y - y2);
-        double d2 = (x - x3) * (y2 - y3) - (x2 - x3) * (y - y3);
-        double d3 = (x - x1) * (y3 - y1) - (x3 - x1) * (y - y1);
-        bool neg = d1 < 0 || d2 < 0 || d3 < 0;
-        bool pos = d1 > 0 || d2 > 0 || d3 > 0;
-        return !(neg && pos);
     }
 }
