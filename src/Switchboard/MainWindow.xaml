@@ -9,7 +9,7 @@
 
     <Grid x:Name="Root" RowDefinitions="Auto,Auto,Auto,Auto" Background="{ThemeResource IfBackgroundBrush}">
         <Grid.Resources>
-            <!-- An input: a tile. Coral when it's showing now; it flips over when it becomes the one showing. -->
+            <!-- An input: a tile. Blue when it's showing now; it flips over when it becomes the one showing. -->
             <DataTemplate x:Key="InputTemplate" x:DataType="vm:InputViewModel">
                 <Grid Opacity="{x:Bind local:Ui.HiddenOpacity(IsHidden), Mode=OneWay}">
                     <Button

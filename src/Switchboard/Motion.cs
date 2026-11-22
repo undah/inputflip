@@ -7,7 +7,7 @@ namespace Switchboard;
 
 /// <summary>
 /// The tile flip: when an input becomes the one showing now, its tile turns over around its vertical middle and lands
-/// coral side up. A Composition animation on the element's visual, not a XAML transition: WinUI 1.8's
+/// blue side up. A Composition animation on the element's visual, not a XAML transition: WinUI 1.8's
 /// BrushTransition/ScalarTransition on these rows crashed the app on a theme change (CLAUDE.md, WinUI pitfalls).
 /// Skipped when Windows' "Animation effects" setting is off.
 /// </summary>

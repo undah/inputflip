@@ -1,42 +1,42 @@
 <?xml version="1.0" encoding="utf-8"?>
-<!-- InputFlip's look ("Tiles", picked by the owner on 2026-11-21): deep plum or warm off-white, inputs as big tiles, the
-     input showing now in coral. Every color is a theme resource, so light and dark follow Windows or the theme picked
-     in Settings. The coral also replaces the Windows accent color for standard controls (toggles, sliders, buttons). -->
+<!-- InputFlip's look ("Tiles", picked by the owner on 2026-11-21): cool near-black or white, inputs as big tiles, the input
+     showing now in clean blue (the owner swapped coral for blue on 2026-11-22). Every color is a theme resource, so light and dark follow Windows or the theme picked
+     in Settings. The blue also replaces the Windows accent color for standard controls (toggles, sliders, buttons). -->
 <ResourceDictionary
     xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
     xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml">
 
     <ResourceDictionary.ThemeDictionaries>
         <ResourceDictionary x:Key="Default">
-            <Color x:Key="IfBackgroundColor">#1B1624</Color>
-            <SolidColorBrush x:Key="IfBackgroundBrush" Color="#1B1624" />
-            <SolidColorBrush x:Key="IfSurfaceBrush" Color="#272035" />
-            <SolidColorBrush x:Key="IfSurfaceRaisedBrush" Color="#2F2740" />
-            <SolidColorBrush x:Key="IfStrokeBrush" Color="#382E4B" />
-            <SolidColorBrush x:Key="IfTextBrush" Color="#F4EEFA" />
-            <SolidColorBrush x:Key="IfTextSecondaryBrush" Color="#B4A7C9" />
-            <SolidColorBrush x:Key="IfIconBrush" Color="#C9B8E8" />
-            <SolidColorBrush x:Key="IfCoralBrush" Color="#FF6B57" />
-            <SolidColorBrush x:Key="IfOnCoralBrush" Color="#3A0E06" />
-            <SolidColorBrush x:Key="IfOnCoralSecondaryBrush" Color="#6A1E10" />
+            <Color x:Key="IfBackgroundColor">#10141B</Color>
+            <SolidColorBrush x:Key="IfBackgroundBrush" Color="#10141B" />
+            <SolidColorBrush x:Key="IfSurfaceBrush" Color="#1A202B" />
+            <SolidColorBrush x:Key="IfSurfaceRaisedBrush" Color="#212836" />
+            <SolidColorBrush x:Key="IfStrokeBrush" Color="#2B3343" />
+            <SolidColorBrush x:Key="IfTextBrush" Color="#EEF2F8" />
+            <SolidColorBrush x:Key="IfTextSecondaryBrush" Color="#9AA6B8" />
+            <SolidColorBrush x:Key="IfIconBrush" Color="#8FB4FF" />
+            <SolidColorBrush x:Key="IfAccentBrush" Color="#2563EB" />
+            <SolidColorBrush x:Key="IfOnAccentBrush" Color="#FFFFFF" />
+            <SolidColorBrush x:Key="IfOnAccentSecondaryBrush" Color="#DCE7FF" />
             <SolidColorBrush x:Key="IfHoverOverlayBrush" Color="#16FFFFFF" />
             <SolidColorBrush x:Key="IfPressedOverlayBrush" Color="#0C000000" />
-            <SolidColorBrush x:Key="IfToastBackgroundBrush" Color="#2F2740" />
+            <SolidColorBrush x:Key="IfToastBackgroundBrush" Color="#212836" />
         </ResourceDictionary>
         <ResourceDictionary x:Key="Light">
-            <Color x:Key="IfBackgroundColor">#FBF7F4</Color>
-            <SolidColorBrush x:Key="IfBackgroundBrush" Color="#FBF7F4" />
-            <SolidColorBrush x:Key="IfSurfaceBrush" Color="#F2EAF5" />
+            <Color x:Key="IfBackgroundColor">#F7F9FC</Color>
+            <SolidColorBrush x:Key="IfBackgroundBrush" Color="#F7F9FC" />
+            <SolidColorBrush x:Key="IfSurfaceBrush" Color="#EDF2F9" />
             <SolidColorBrush x:Key="IfSurfaceRaisedBrush" Color="#FFFFFF" />
-            <SolidColorBrush x:Key="IfStrokeBrush" Color="#E6DAE6" />
-            <SolidColorBrush x:Key="IfTextBrush" Color="#2A2233" />
-            <SolidColorBrush x:Key="IfTextSecondaryBrush" Color="#6B5D78" />
-            <SolidColorBrush x:Key="IfIconBrush" Color="#6B4C93" />
-            <SolidColorBrush x:Key="IfCoralBrush" Color="#FF6B57" />
-            <SolidColorBrush x:Key="IfOnCoralBrush" Color="#3A0E06" />
-            <SolidColorBrush x:Key="IfOnCoralSecondaryBrush" Color="#6A1E10" />
-            <SolidColorBrush x:Key="IfHoverOverlayBrush" Color="#0D2A2233" />
-            <SolidColorBrush x:Key="IfPressedOverlayBrush" Color="#182A2233" />
+            <SolidColorBrush x:Key="IfStrokeBrush" Color="#DCE3EE" />
+            <SolidColorBrush x:Key="IfTextBrush" Color="#141A24" />
+            <SolidColorBrush x:Key="IfTextSecondaryBrush" Color="#5A6678" />
+            <SolidColorBrush x:Key="IfIconBrush" Color="#2563EB" />
+            <SolidColorBrush x:Key="IfAccentBrush" Color="#2563EB" />
+            <SolidColorBrush x:Key="IfOnAccentBrush" Color="#FFFFFF" />
+            <SolidColorBrush x:Key="IfOnAccentSecondaryBrush" Color="#DCE7FF" />
+            <SolidColorBrush x:Key="IfHoverOverlayBrush" Color="#0D141A24" />
+            <SolidColorBrush x:Key="IfPressedOverlayBrush" Color="#18141A24" />
             <SolidColorBrush x:Key="IfToastBackgroundBrush" Color="#FFFFFF" />
         </ResourceDictionary>
         <!-- Windows' high-contrast themes win over the brand: system colors only. -->
@@ -48,30 +48,30 @@
             <SolidColorBrush x:Key="IfTextBrush" Color="{ThemeResource SystemColorWindowTextColor}" />
             <SolidColorBrush x:Key="IfTextSecondaryBrush" Color="{ThemeResource SystemColorWindowTextColor}" />
             <SolidColorBrush x:Key="IfIconBrush" Color="{ThemeResource SystemColorWindowTextColor}" />
-            <SolidColorBrush x:Key="IfCoralBrush" Color="{ThemeResource SystemColorHighlightColor}" />
-            <SolidColorBrush x:Key="IfOnCoralBrush" Color="{ThemeResource SystemColorHighlightTextColor}" />
-            <SolidColorBrush x:Key="IfOnCoralSecondaryBrush" Color="{ThemeResource SystemColorHighlightTextColor}" />
+            <SolidColorBrush x:Key="IfAccentBrush" Color="{ThemeResource SystemColorHighlightColor}" />
+            <SolidColorBrush x:Key="IfOnAccentBrush" Color="{ThemeResource SystemColorHighlightTextColor}" />
+            <SolidColorBrush x:Key="IfOnAccentSecondaryBrush" Color="{ThemeResource SystemColorHighlightTextColor}" />
             <SolidColorBrush x:Key="IfHoverOverlayBrush" Color="Transparent" />
             <SolidColorBrush x:Key="IfPressedOverlayBrush" Color="Transparent" />
             <SolidColorBrush x:Key="IfToastBackgroundBrush" Color="{ThemeResource SystemColorWindowColor}" />
         </ResourceDictionary>
     </ResourceDictionary.ThemeDictionaries>
 
-    <!-- Coral instead of the Windows accent color in standard controls. Light mode fills with the darker shades
+    <!-- Blue instead of the Windows accent color in standard controls. Light mode fills with the darker shades
          (white text on them), dark mode with the lighter ones (black text). -->
-    <Color x:Key="SystemAccentColor">#FF6B57</Color>
-    <Color x:Key="SystemAccentColorLight1">#FF7E6B</Color>
-    <Color x:Key="SystemAccentColorLight2">#FF8C7A</Color>
-    <Color x:Key="SystemAccentColorLight3">#FFA99B</Color>
-    <Color x:Key="SystemAccentColorDark1">#C2412E</Color>
-    <Color x:Key="SystemAccentColorDark2">#A33524</Color>
-    <Color x:Key="SystemAccentColorDark3">#7F2717</Color>
+    <Color x:Key="SystemAccentColor">#2563EB</Color>
+    <Color x:Key="SystemAccentColorLight1">#3D78F0</Color>
+    <Color x:Key="SystemAccentColorLight2">#5B8DF5</Color>
+    <Color x:Key="SystemAccentColorLight3">#84AAF8</Color>
+    <Color x:Key="SystemAccentColorDark1">#1D4FD0</Color>
+    <Color x:Key="SystemAccentColorDark2">#1A44B0</Color>
+    <Color x:Key="SystemAccentColorDark3">#163A94</Color>
 
     <x:String x:Key="MonoFont">Cascadia Mono, Consolas</x:String>
     <x:String x:Key="DisplayFont">Segoe UI Variable Display, Segoe UI</x:String>
 
-    <!-- An input in the main window: a big tile. The fill carries coral for the input showing now; the overlay on top
-         shows hover and pressed on coral tiles and plain ones alike. Switching between the two styles only changes
+    <!-- An input in the main window: a big tile. The fill carries blue for the input showing now; the overlay on top
+         shows hover and pressed on blue tiles and plain ones alike. Switching between the two styles only changes
          Background and Foreground. -->
     <ControlTemplate x:Key="TileTemplate" TargetType="Button">
         <Grid x:Name="Root" CornerRadius="{TemplateBinding CornerRadius}">
@@ -130,21 +130,21 @@
     </Style>
 
     <Style x:Key="CurrentTileStyle" TargetType="Button" BasedOn="{StaticResource TileStyle}">
-        <Setter Property="Background" Value="{ThemeResource IfCoralBrush}" />
-        <Setter Property="BorderBrush" Value="{ThemeResource IfCoralBrush}" />
-        <Setter Property="Foreground" Value="{ThemeResource IfOnCoralBrush}" />
+        <Setter Property="Background" Value="{ThemeResource IfAccentBrush}" />
+        <Setter Property="BorderBrush" Value="{ThemeResource IfAccentBrush}" />
+        <Setter Property="Foreground" Value="{ThemeResource IfOnAccentBrush}" />
     </Style>
 
-    <!-- The icon on a tile: lavender on plain tiles, the tile's text color on coral. -->
+    <!-- The icon on a tile: light blue on plain tiles, the tile's text color on blue. -->
     <Style x:Key="TileIconStyle" TargetType="FontIcon">
         <Setter Property="Foreground" Value="{ThemeResource IfIconBrush}" />
     </Style>
 
     <Style x:Key="CurrentTileIconStyle" TargetType="FontIcon">
-        <Setter Property="Foreground" Value="{ThemeResource IfOnCoralBrush}" />
+        <Setter Property="Foreground" Value="{ThemeResource IfOnAccentBrush}" />
     </Style>
 
-    <!-- A scene: a pill. Coral when every monitor it switches shows its input. -->
+    <!-- A scene: a pill. Blue when every monitor it switches shows its input. -->
     <Style x:Key="SceneChipStyle" TargetType="Button" BasedOn="{StaticResource TileStyle}">
         <Setter Property="MinHeight" Value="36" />
         <Setter Property="Padding" Value="12,0" />
@@ -155,9 +155,9 @@
     </Style>
 
     <Style x:Key="CurrentSceneChipStyle" TargetType="Button" BasedOn="{StaticResource SceneChipStyle}">
-        <Setter Property="Background" Value="{ThemeResource IfCoralBrush}" />
-        <Setter Property="BorderBrush" Value="{ThemeResource IfCoralBrush}" />
-        <Setter Property="Foreground" Value="{ThemeResource IfOnCoralBrush}" />
+        <Setter Property="Background" Value="{ThemeResource IfAccentBrush}" />
+        <Setter Property="BorderBrush" Value="{ThemeResource IfAccentBrush}" />
+        <Setter Property="Foreground" Value="{ThemeResource IfOnAccentBrush}" />
     </Style>
 
     <!-- Small borderless icon buttons: title bar, reorder arrows. Subtle fill on hover, faded when disabled. -->

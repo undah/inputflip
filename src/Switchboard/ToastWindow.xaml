@@ -15,8 +15,8 @@
         ColumnDefinitions="Auto,*"
         ColumnSpacing="12"
         AutomationProperties.AccessibilityView="Raw">
-        <Border Width="40" Height="40" CornerRadius="12" Background="{ThemeResource IfCoralBrush}" VerticalAlignment="Center">
-            <FontIcon x:Name="Glyph" FontSize="20" Foreground="{ThemeResource IfOnCoralBrush}" />
+        <Border Width="40" Height="40" CornerRadius="12" Background="{ThemeResource IfAccentBrush}" VerticalAlignment="Center">
+            <FontIcon x:Name="Glyph" FontSize="20" Foreground="{ThemeResource IfOnAccentBrush}" />
         </Border>
         <StackPanel Grid.Column="1" VerticalAlignment="Center">
             <TextBlock x:Name="TitleText" FontFamily="{StaticResource DisplayFont}" FontWeight="SemiBold" FontSize="16" Foreground="{ThemeResource IfTextBrush}" TextTrimming="CharacterEllipsis" />

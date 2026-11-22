@@ -406,8 +406,10 @@ for a monitor input switcher can find.
   (window title, Start menu, installer, repo name). What keeps settings and updates working stays: the Velopack pack id
   `SwitchboardApp`, the data folder `%LOCALAPPDATA%\Switchboard`, the `Switchboard` start-with-Windows entry.
 - **Licence: MIT.**
-- **Look: "Tiles"** (picked from three mockups: Signal, Tiles, Studio). Each input is a big tile with its icon; the
-  one showing now is coral (`#FF6B57`) on deep plum in dark mode, on warm off-white in light; tiles flip when you switch.
+- **Look: "Tiles"** (picked from three mockups: Signal, Tiles, Studio). Each input is a big tile with its icon; tiles
+  flip when you switch. First built in coral on plum; **the owner asked for a clean blue instead (2026-11-22)**: the
+  input showing now is blue `#2563EB` with white text, on near-black `#10141B` (dark) or `#F7F9FC` (light). The blue
+  also replaces the Windows accent color in standard controls.
 - **Features: all eight offered.**
   - [ ] Scenes: one click or key switches several monitors at once
   - [ ] Command line and `inputflip://` links (scripts, desktop shortcuts, AutoHotkey, Stream Deck)
