@@ -8,7 +8,7 @@
     <AssemblyName>InputFlip</AssemblyName>
     <ApplicationManifest>app.manifest</ApplicationManifest>
     <ApplicationIcon>Assets\InputFlip.ico</ApplicationIcon>
-    <Version>1.0.7</Version>
+    <Version>1.1.0</Version>
     <Product>InputFlip</Product>
     <Description>Switches your monitor's input over DDC/CI</Description>
     <Platforms>x64;ARM64</Platforms>

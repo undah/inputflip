@@ -432,7 +432,7 @@ for a monitor input switcher can find.
 - [x] New look and icon (blue tiles; two tiles on blue for the icon)
 - [x] Docs: README (search terms, FAQ, alternatives), user guide, command line, compatibility list, CONTRIBUTING,
       CODE_OF_CONDUCT, SECURITY, issue forms, PR template, CI workflow, architecture
-- [ ] History audit, owner's OK, repo public with description and topics
+- [x] History audit, owner's OK (2026-11-22), repo public at https://github.com/undah/inputflip with description, 20 topics and private vulnerability reporting; author email rewritten to the noreply address (60 commits, same tree), `stage1-probe-script` deleted
 - [ ] Shipped as 1.1.0 through the Update button, and published as a GitHub release
 
 **Checked without the owner (2026-11-22):** 173 unit tests; build with no warnings; a `--data-dir --no-switch` copy
