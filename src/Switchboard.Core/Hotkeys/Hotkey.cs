@@ -61,7 +61,7 @@ public readonly record struct Hotkey(HotkeyModifiers Modifiers, uint VirtualKey)
 
         if (!TryParseKey(parts[^1], out uint vk))
         {
-            error = $"\"{parts[^1]}\" isn't a key Switchboard knows. Use a letter, a digit, F1 to F24, Numpad0 to Numpad9, or a key such as Home or PageUp.";
+            error = $"\"{parts[^1]}\" isn't a key InputFlip knows. Use a letter, a digit, F1 to F24, Numpad0 to Numpad9, or a key such as Home or PageUp.";
             return false;
         }
 
@@ -78,7 +78,7 @@ public readonly record struct Hotkey(HotkeyModifiers Modifiers, uint VirtualKey)
     }
 
     /// <summary>
-    /// For the shortcut recorder: a shortcut from the keys pressed, if Switchboard can use it.
+    /// For the shortcut recorder: a shortcut from the keys pressed, if InputFlip can use it.
     /// Unknown keys and combinations without Ctrl, Alt or Win give an error to show.
     /// </summary>
     public static bool TryCreate(HotkeyModifiers modifiers, uint virtualKey, out Hotkey hotkey, [NotNullWhen(false)] out string? error)
@@ -87,7 +87,7 @@ public readonly record struct Hotkey(HotkeyModifiers Modifiers, uint VirtualKey)
         string key = KeyName(virtualKey);
         if (key.StartsWith("0x", StringComparison.Ordinal))
         {
-            error = "Switchboard can't use that key. Use a letter, a digit, F1 to F24, a number pad digit, or a key such as Home or PageUp.";
+            error = "InputFlip can't use that key. Use a letter, a digit, F1 to F24, a number pad digit, or a key such as Home or PageUp.";
             return false;
         }
         return TryParse(new Hotkey(modifiers, virtualKey).ToString(), out hotkey, out error);

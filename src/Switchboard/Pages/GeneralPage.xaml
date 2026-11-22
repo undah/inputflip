@@ -10,7 +10,7 @@
     <StackPanel Spacing="4">
         <TextBlock Text="General" Style="{StaticResource PageTitleStyle}" />
 
-        <controls:SettingsCard Header="Start with Windows" Description="Open Switchboard when you sign in, so its shortcuts work right away." Glyph="&#xE7E8;">
+        <controls:SettingsCard Header="Start with Windows" Description="Open InputFlip when you sign in, so its shortcuts work right away." Glyph="&#xE7E8;">
             <controls:SettingsCard.Action>
                 <ToggleSwitch
                     IsOn="{x:Bind ViewModel.StartWithWindows, Mode=TwoWay}"
@@ -38,7 +38,7 @@
             </controls:SettingsCard.Action>
         </controls:SettingsCard>
 
-        <controls:SettingsCard Header="Keep the window on top" Description="Switchboard stays above other windows. Same as the pin in its title bar." Glyph="&#xE718;">
+        <controls:SettingsCard Header="Keep the window on top" Description="InputFlip stays above other windows. Same as the pin in its title bar." Glyph="&#xE718;">
             <controls:SettingsCard.Action>
                 <ToggleSwitch
                     IsOn="{x:Bind ViewModel.AlwaysOnTop, Mode=TwoWay}"
@@ -49,7 +49,7 @@
             </controls:SettingsCard.Action>
         </controls:SettingsCard>
 
-        <controls:SettingsCard Header="Move the mouse out of the way" Description="When a monitor switches from this PC to another device with the mouse on it, the mouse moves to Switchboard's window. Switching back to this PC puts it back." Glyph="&#xE962;">
+        <controls:SettingsCard Header="Move the mouse out of the way" Description="When a monitor switches from this PC to another device with the mouse on it, the mouse moves to InputFlip's window. Switching back to this PC puts it back." Glyph="&#xE962;">
             <controls:SettingsCard.Action>
                 <ToggleSwitch
                     IsOn="{x:Bind ViewModel.MoveMouse, Mode=TwoWay}"
@@ -57,6 +57,23 @@
                     OffContent="Off"
                     MinWidth="0"
                     AutomationProperties.Name="Move the mouse out of the way" />
+            </controls:SettingsCard.Action>
+        </controls:SettingsCard>
+
+        <TextBlock Text="Tray and notes" Style="{StaticResource SectionHeaderStyle}" />
+        <controls:SettingsCard Header="Icon by the clock" Description="Click it to open InputFlip; right-click it for scenes and inputs. It shows on the main display's taskbar." Glyph="&#xE7C4;">
+            <controls:SettingsCard.Action>
+                <ToggleSwitch IsOn="{x:Bind ViewModel.ShowTrayIcon, Mode=TwoWay}" OnContent="On" OffContent="Off" MinWidth="0" AutomationProperties.Name="Icon by the clock" />
+            </controls:SettingsCard.Action>
+        </controls:SettingsCard>
+        <controls:SettingsCard Header="Closing the window keeps InputFlip running" Description="The close button hides the window instead of quitting, so shortcuts and rules keep working. Quit from the tray icon's menu." Glyph="&#xE8BB;">
+            <controls:SettingsCard.Action>
+                <ToggleSwitch IsOn="{x:Bind ViewModel.CloseToTray, Mode=TwoWay}" IsEnabled="{x:Bind ViewModel.ShowTrayIcon, Mode=OneWay}" OnContent="On" OffContent="Off" MinWidth="0" AutomationProperties.Name="Closing the window keeps InputFlip running" />
+            </controls:SettingsCard.Action>
+        </controls:SettingsCard>
+        <controls:SettingsCard Header="Show a note after a switch" Description="A short note like PS5 on MSI at the bottom of a screen you can still see, after a shortcut, scene, rule or command switches a monitor." Glyph="&#xE8BD;">
+            <controls:SettingsCard.Action>
+                <ToggleSwitch IsOn="{x:Bind ViewModel.ShowToasts, Mode=TwoWay}" OnContent="On" OffContent="Off" MinWidth="0" AutomationProperties.Name="Show a note after a switch" />
             </controls:SettingsCard.Action>
         </controls:SettingsCard>
 

@@ -26,7 +26,7 @@ public sealed partial class SetupWindow : Window
         _app = app;
         ViewModel = new SettingsViewModel(app);
         InitializeComponent();
-        WindowChrome.SetUp(this, TitleArea, "Set up Switchboard");
+        WindowChrome.SetUp(this, TitleArea, "Set up InputFlip");
         if (AppWindow.Presenter is OverlappedPresenter presenter)
         {
             presenter.IsMaximizable = false;
@@ -79,11 +79,11 @@ public sealed partial class SetupWindow : Window
         (StepTitle.Text, StepIntro.Text) = step switch
         {
             Monitors => ("Your monitors",
-                "Switchboard switches inputs over DDC/CI, the control channel in the display cable. A monitor that isn't answering usually has DDC/CI turned off in its on-screen menu; some only answer over HDMI."),
+                "InputFlip switches inputs over DDC/CI, the control channel in the display cable. A monitor that isn't answering usually has DDC/CI turned off in its on-screen menu; some only answer over HDMI."),
             Names => ("Name your inputs",
                 "Say what's plugged into each input, such as \"PS5\" or \"Work laptop\", and pick an icon. Untick inputs you don't use, such as ports the monitor lists but doesn't have."),
             ScreensOff => ("Monitors that won't switch away",
-                "Some monitors ignore switch commands while they show this PC. Switchboard can turn all screens off for a few seconds while it switches, which makes them listen. Going back to the PC works normally."),
+                "Some monitors ignore switch commands while they show this PC. InputFlip can turn all screens off for a few seconds while it switches, which makes them listen. Going back to the PC works normally."),
             _ => ("Shortcuts",
                 "Switch from anywhere, even while a game has the screen. Click a shortcut, then press the keys you want. You can change these later in Settings."),
         };

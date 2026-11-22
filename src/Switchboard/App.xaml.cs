@@ -65,7 +65,7 @@ public partial class App : Application
         })
         {
             IsBackground = true,
-            Name = "Switchboard single-instance listener",
+            Name = "InputFlip single-instance listener",
         };
         thread.Start();
     }

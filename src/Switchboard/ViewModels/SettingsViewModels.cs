@@ -13,7 +13,7 @@ namespace Switchboard.ViewModels;
 /// Everything the settings and setup windows show. Every edit is applied and saved at once (no OK button, as in
 /// Windows Settings). <see cref="Sync"/> refreshes values in place, so a text box you're typing in isn't disturbed.
 /// </summary>
-public sealed class SettingsViewModel : ObservableObject
+public sealed partial class SettingsViewModel : ObservableObject
 {
     private readonly AppController _app;
     private bool _startWithWindows;
@@ -27,7 +27,7 @@ public sealed class SettingsViewModel : ObservableObject
     public SettingsViewModel(AppController app)
     {
         _app = app;
-        ShowShortcut = new ShortcutItemViewModel(app, ShortcutSlots.Show, "Bring Switchboard to the front", "Shows the window, even when it's minimized or behind other windows.", "\uE737");
+        ShowShortcut = new ShortcutItemViewModel(app, ShortcutSlots.Show, "Bring InputFlip to the front", "Shows the window, even when it's minimized or behind other windows.", "\uE737");
         CycleShortcut = new ShortcutItemViewModel(app, ShortcutSlots.Cycle, "Switch to the next input", "Goes through the shown inputs of one monitor, one press at a time. With two inputs shown, it flips between them.", "\uE8AB");
         EditSettingsFileCommand = new RelayCommand(app.EditSettingsFile);
         OpenLogCommand = new RelayCommand(() => LogMessage = app.OpenLog() ? null : "There's nothing in the log yet.");
@@ -36,6 +36,7 @@ public sealed class SettingsViewModel : ObservableObject
         CopyAllDiagnosticsCommand = new RelayCommand(() => CopyText(app.Diagnostics(null)));
         CheckUpdatesCommand = new AsyncRelayCommand(() => app.CheckForUpdatesAsync(quiet: true));
         InstallUpdateCommand = new AsyncRelayCommand(app.InstallUpdateAsync);
+        InitFeatures();
         Sync();
     }
 
@@ -160,7 +161,7 @@ public sealed class SettingsViewModel : ObservableObject
     {
         var check = _app.UpdateStatus;
         bool installing = _app.ViewModel.IsUpdating;
-        string message = installing ? $"Installing version {check.NewVersion}. Switchboard restarts when it's done."
+        string message = installing ? $"Installing version {check.NewVersion}. InputFlip restarts when it's done."
             : _app.IsCheckingForUpdates ? "Checking…"
             : check.State == UpdateState.Unknown ? "Not checked yet."
             : check.Message;
@@ -228,6 +229,8 @@ public sealed class SettingsViewModel : ObservableObject
 
             // Diagnostics.
             SyncList(Diagnostics, connected.ToList(), (d, m) => d.Id == m.Id, m => new DiagnosticsViewModel(this, m.Id), (d, m) => d.Sync(m));
+
+            SyncFeatures();
         }
         finally
         {
@@ -315,7 +318,7 @@ public sealed class MonitorEditViewModel : ObservableObject
 
     public string Title { get => _title; private set => SetProperty(ref _title, value); }
 
-    /// <summary>The name shown in Switchboard. Clearing it goes back to the model name.</summary>
+    /// <summary>The name shown in InputFlip. Clearing it goes back to the model name.</summary>
     public string Nickname
     {
         get => _nickname;
@@ -338,7 +341,7 @@ public sealed class MonitorEditViewModel : ObservableObject
 
     public bool IsNotConnected => !_isConnected;
 
-    /// <summary>Answers DDC/CI (now, or at least once since Switchboard started).</summary>
+    /// <summary>Answers DDC/CI (now, or at least once since InputFlip started).</summary>
     public bool IsAnswering => _snapshot is { } s && (s.Health == MonitorHealth.Responding || s.HasAnswered);
 
     public bool IsNotAnswering => !IsAnswering;
@@ -582,7 +585,7 @@ public sealed class InputEditViewModel : ObservableObject
 
     public string IconBoxName => $"Icon for {_name}: {Ui.IconChoices[Math.Max(0, _iconIndex)].Label}";
 
-    public string ShowBoxName => $"Show {_name} in Switchboard";
+    public string ShowBoxName => $"Show {_name} in InputFlip";
 
     public string MoveUpName => $"Move {_name} up";
 
@@ -718,7 +721,7 @@ public sealed class ShortcutGroupViewModel : ObservableObject
     }
 }
 
-/// <summary>What Switchboard knows about a monitor, for the About page.</summary>
+/// <summary>What InputFlip knows about a monitor, for the About page.</summary>
 public sealed class DiagnosticsViewModel : ObservableObject
 {
     private readonly SettingsViewModel _owner;

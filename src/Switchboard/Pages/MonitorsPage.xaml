@@ -11,7 +11,7 @@
     <StackPanel Spacing="4">
         <TextBlock Text="Monitors" Style="{StaticResource PageTitleStyle}" />
         <TextBlock
-            Text="Names and icons show in the Switchboard window. Monitors and inputs appear in the order listed here."
+            Text="Names and icons show in the InputFlip window. Monitors and inputs appear in the order listed here."
             Style="{StaticResource DescriptionStyle}"
             Margin="0,0,0,12" />
 
@@ -54,14 +54,14 @@
 
                             <Grid ColumnDefinitions="*,Auto,Auto" ColumnSpacing="24">
                                 <TextBox
-                                    Header="Name in Switchboard"
+                                    Header="Name in InputFlip"
                                     Text="{x:Bind Nickname, Mode=TwoWay}"
                                     PlaceholderText="{x:Bind ModelName, Mode=OneWay}"
                                     MaxWidth="360"
                                     HorizontalAlignment="Stretch" />
                                 <ToggleSwitch
                                     Grid.Column="1"
-                                    Header="Show in Switchboard"
+                                    Header="Show in InputFlip"
                                     IsOn="{x:Bind IsShown, Mode=TwoWay}"
                                     MinWidth="0" />
                                 <StackPanel Grid.Column="2" Spacing="4">
@@ -98,7 +98,7 @@
                                     Foreground="{ThemeResource SystemFillColorCriticalBrush}"
                                     AutomationProperties.LiveSetting="Assertive" />
                                 <TextBlock
-                                    Text="For an input the monitor doesn't list. Common values: 0x0F DisplayPort 1, 0x10 DisplayPort 2, 0x11 HDMI 1, 0x12 HDMI 2, 0x1B USB-C. Check that it works by clicking it in the Switchboard window."
+                                    Text="For an input the monitor doesn't list. Common values: 0x0F DisplayPort 1, 0x10 DisplayPort 2, 0x11 HDMI 1, 0x12 HDMI 2, 0x1B USB-C. Check that it works by clicking it in the InputFlip window."
                                     Style="{StaticResource DescriptionStyle}" />
                             </StackPanel>
 
@@ -117,7 +117,7 @@
                                 Content="Forget this monitor"
                                 Command="{x:Bind ForgetCommand}"
                                 Visibility="{x:Bind local:Ui.Visible(IsNotConnected), Mode=OneWay}"
-                                ToolTipService.ToolTip="Removes its names, icons and shortcuts from Switchboard. It's added again if you connect it." />
+                                ToolTipService.ToolTip="Removes its names, icons and shortcuts from InputFlip. It's added again if you connect it." />
                         </StackPanel>
                     </Expander>
                 </DataTemplate>

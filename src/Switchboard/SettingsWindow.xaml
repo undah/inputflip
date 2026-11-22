@@ -3,12 +3,12 @@
     x:Class="Switchboard.SettingsWindow"
     xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
     xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
-    Title="Switchboard settings">
+    Title="InputFlip settings">
 
-    <Grid x:Name="Root" RowDefinitions="Auto,*">
+    <Grid x:Name="Root" RowDefinitions="Auto,*" Background="{ThemeResource IfBackgroundBrush}">
         <Grid x:Name="TitleArea" Height="48" Background="Transparent" ColumnDefinitions="Auto,*" ColumnSpacing="12" Padding="16,0,0,0">
             <Image Source="ms-appx:///Assets/Switchboard.ico" Width="16" Height="16" VerticalAlignment="Center" AutomationProperties.AccessibilityView="Raw" />
-            <TextBlock Grid.Column="1" Text="Switchboard settings" Style="{StaticResource CaptionTextBlockStyle}" VerticalAlignment="Center" />
+            <TextBlock Grid.Column="1" Text="InputFlip settings" Style="{StaticResource CaptionTextBlockStyle}" VerticalAlignment="Center" />
         </Grid>
 
         <NavigationView
@@ -27,6 +27,12 @@
                 </NavigationViewItem>
                 <NavigationViewItem Content="Monitors" Tag="monitors">
                     <NavigationViewItem.Icon><FontIcon Glyph="&#xE7F4;" /></NavigationViewItem.Icon>
+                </NavigationViewItem>
+                <NavigationViewItem Content="Scenes" Tag="scenes">
+                    <NavigationViewItem.Icon><FontIcon Glyph="&#xE8A9;" /></NavigationViewItem.Icon>
+                </NavigationViewItem>
+                <NavigationViewItem Content="Rules" Tag="rules">
+                    <NavigationViewItem.Icon><FontIcon Glyph="&#xE8B1;" /></NavigationViewItem.Icon>
                 </NavigationViewItem>
                 <NavigationViewItem Content="Shortcuts" Tag="shortcuts">
                     <NavigationViewItem.Icon><FontIcon Glyph="&#xE765;" /></NavigationViewItem.Icon>

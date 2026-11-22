@@ -92,7 +92,7 @@ public sealed class MonitorService : IAsyncDisposable
     public bool ReadOnly { get; set; }
 
     /// <summary>
-    /// Keeps capabilities strings between runs, so starting Switchboard doesn't read them again. Reading one is a single
+    /// Keeps capabilities strings between runs, so starting InputFlip doesn't read them again. Reading one is a single
     /// call that can't be interrupted (2.6 s on the MSI G27CQ4), and a switch on that monitor had to wait behind it.
     /// Null: remember them only while running.
     /// </summary>

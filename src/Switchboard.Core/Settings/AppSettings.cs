@@ -29,7 +29,7 @@ public sealed class AppSettings
 
     /// <summary>
     /// Don't move the mouse when a monitor switches. Normally, when a monitor switches from this PC to another device
-    /// while the mouse is on it, the mouse moves to Switchboard's window, and back when you switch to this PC again.
+    /// while the mouse is on it, the mouse moves to InputFlip's window, and back when you switch to this PC again.
     /// (Stored as the opt-out because settings.json leaves out false values.)
     /// </summary>
     public bool LeaveMouseAlone { get; set; }

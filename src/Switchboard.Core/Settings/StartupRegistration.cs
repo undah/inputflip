@@ -19,7 +19,7 @@ public sealed class StartupRegistration(string keyPath = StartupRegistration.Run
         return key?.GetValue(valueName) is string command && SamePath(command, exePath) && !TurnedOffInTaskManager();
     }
 
-    /// <summary>Whether any Switchboard entry exists, even for another copy of the exe.</summary>
+    /// <summary>Whether any InputFlip entry exists, even for another copy of the exe.</summary>
     public bool Exists()
     {
         using var key = Registry.CurrentUser.OpenSubKey(keyPath);

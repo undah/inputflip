@@ -7,7 +7,7 @@ using Switchboard.ViewModels;
 
 namespace Switchboard;
 
-/// <summary>Settings: General, Monitors, Shortcuts, About. Changes apply and save at once.</summary>
+/// <summary>Settings: General, Monitors, Scenes, Rules, Shortcuts, About. Changes apply and save at once.</summary>
 public sealed partial class SettingsWindow : Window
 {
     private readonly AppController _app;
@@ -20,7 +20,7 @@ public sealed partial class SettingsWindow : Window
         _app = app;
         _viewModel = new SettingsViewModel(app);
         InitializeComponent();
-        WindowChrome.SetUp(this, TitleArea, "Switchboard settings");
+        WindowChrome.SetUp(this, TitleArea, "InputFlip settings");
         if (AppWindow.Presenter is OverlappedPresenter presenter)
         {
             presenter.PreferredMinimumWidth = 640;
@@ -38,7 +38,7 @@ public sealed partial class SettingsWindow : Window
     public void Navigate(string? page, string? monitorId = null)
     {
         _pendingMonitor = monitorId;
-        string tag = page is "general" or "monitors" or "shortcuts" or "about" ? page : (Nav.SelectedItem as NavigationViewItem)?.Tag as string ?? "general";
+        string tag = page is "general" or "monitors" or "scenes" or "rules" or "shortcuts" or "about" ? page : (Nav.SelectedItem as NavigationViewItem)?.Tag as string ?? "general";
         var item = Nav.MenuItems.OfType<NavigationViewItem>().First(i => (string)i.Tag == tag);
         if (ReferenceEquals(Nav.SelectedItem, item)) Show(tag);
         else Nav.SelectedItem = item;
@@ -56,6 +56,8 @@ public sealed partial class SettingsWindow : Window
             page = tag switch
             {
                 "monitors" => new MonitorsPage(_viewModel),
+                "scenes" => new ScenesPage(_viewModel),
+                "rules" => new RulesPage(_viewModel),
                 "shortcuts" => new ShortcutsPage(_viewModel),
                 "about" => new AboutPage(_viewModel),
                 _ => new GeneralPage(_viewModel),

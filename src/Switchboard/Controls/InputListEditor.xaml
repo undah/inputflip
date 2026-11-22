@@ -73,7 +73,7 @@
                             MinWidth="0"
                             IsChecked="{x:Bind IsShown, Mode=TwoWay}"
                             AutomationProperties.Name="{x:Bind ShowBoxName, Mode=OneWay}"
-                            ToolTipService.ToolTip="Show this input in the Switchboard window"
+                            ToolTipService.ToolTip="Show this input in the InputFlip window"
                             VerticalAlignment="Center" />
 
                         <StackPanel Grid.Column="4" Orientation="Horizontal" Spacing="2" VerticalAlignment="Center">

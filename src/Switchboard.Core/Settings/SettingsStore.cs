@@ -71,13 +71,13 @@ public sealed class SettingsStore
             return new SettingsLoadResult(
                 new AppSettings(),
                 true,
-                $"Your settings file has a mistake{where}, so Switchboard is using defaults. Fix it and save; it reloads by itself.");
+                $"Your settings file has a mistake{where}, so InputFlip is using defaults. Fix it and save; it reloads by itself.");
         }
         catch (IOException ex)
         {
             IsBroken = true;
             Log.Warn($"settings.json couldn't be read: {ex.Message}");
-            return new SettingsLoadResult(new AppSettings(), true, "Switchboard couldn't open its settings file, so it's using defaults.");
+            return new SettingsLoadResult(new AppSettings(), true, "InputFlip couldn't open its settings file, so it's using defaults.");
         }
     }
 

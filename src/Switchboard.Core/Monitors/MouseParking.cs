@@ -7,12 +7,12 @@ namespace Switchboard.Core.Monitors;
 public static class MouseParking
 {
     /// <summary>
-    /// The middle of Switchboard's window when it's on another screen, else the middle of the main display, else of
+    /// The middle of InputFlip's window when it's on another screen, else the middle of the main display, else of
     /// any other screen. Null when there's no other screen to go to.
     /// </summary>
     /// <param name="leaving">The monitor that's switching to another device.</param>
     /// <param name="screens">Every screen, the leaving one included.</param>
-    /// <param name="window">Switchboard's window, or null when it's minimized or hidden.</param>
+    /// <param name="window">InputFlip's window, or null when it's minimized or hidden.</param>
     public static (int X, int Y)? Spot(ScreenRect leaving, IReadOnlyList<(ScreenRect Bounds, bool IsPrimary)> screens, ScreenRect? window)
     {
         if (window is { } w && !Contains(leaving, Middle(w)) && screens.Any(s => Contains(s.Bounds, Middle(w))))

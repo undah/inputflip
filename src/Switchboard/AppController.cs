@@ -84,7 +84,7 @@ public sealed partial class AppController : ISwitchboardActions, IAsyncDisposabl
     /// </summary>
     private readonly Dictionary<string, uint> _pendingSwitch = new(StringComparer.OrdinalIgnoreCase);
 
-    /// <summary>Per monitor: where the mouse was before Switchboard moved it off that monitor (physical pixels).</summary>
+    /// <summary>Per monitor: where the mouse was before InputFlip moved it off that monitor (physical pixels).</summary>
     private readonly Dictionary<string, (int X, int Y)> _parkedMouse = new(StringComparer.OrdinalIgnoreCase);
 
     private DateTime _lastSwitchStarted = DateTime.MinValue;
@@ -147,7 +147,7 @@ public sealed partial class AppController : ISwitchboardActions, IAsyncDisposabl
 
     public void Start()
     {
-        Log.Info($"Switchboard {AppInfo.Version} starting{(AppPaths.IsCustomDataDirectory ? $" with data in {AppPaths.DataDirectory}" : "")}{(_options.NoSwitch ? ", switching off (--no-switch)" : "")}");
+        Log.Info($"InputFlip {AppInfo.Version} starting{(AppPaths.IsCustomDataDirectory ? $" with data in {AppPaths.DataDirectory}" : "")}{(_options.NoSwitch ? ", switching off (--no-switch)" : "")}");
         var loaded = _store.Load();
         _settings = loaded.Settings;
         _settingsProblem = loaded.Problem;
@@ -215,7 +215,7 @@ public sealed partial class AppController : ISwitchboardActions, IAsyncDisposabl
         }
     }
 
-    /// <summary>Downloads the update, then closes Switchboard, installs it and starts the new version.</summary>
+    /// <summary>Downloads the update, then closes InputFlip, installs it and starts the new version.</summary>
     public async Task InstallUpdateAsync()
     {
         if (ViewModel.IsUpdating || ViewModel.UpdateVersion is not { } version) return;
@@ -223,7 +223,7 @@ public sealed partial class AppController : ISwitchboardActions, IAsyncDisposabl
         StateChanged?.Invoke();
         SetStatus($"Getting version {version}…");
         string? problem = await _updater.InstallAsync(percent => _dispatcher.TryEnqueue(() => SetStatus($"Getting version {version}… {percent}%")));
-        // When it works, Switchboard closes here and the new version starts.
+        // When it works, InputFlip closes here and the new version starts.
         ViewModel.IsUpdating = false;
         StateChanged?.Invoke();
         if (problem is not null) SetStatus(problem);
@@ -316,7 +316,7 @@ public sealed partial class AppController : ISwitchboardActions, IAsyncDisposabl
         catch (Exception ex)
         {
             Log.Error("Changing start with Windows failed", ex);
-            return "Windows didn't let Switchboard change its startup setting. Try again, or use Task Manager's Startup apps page.";
+            return "Windows didn't let InputFlip change its startup setting. Try again, or use Task Manager's Startup apps page.";
         }
     }
 
@@ -419,7 +419,7 @@ public sealed partial class AppController : ISwitchboardActions, IAsyncDisposabl
         string inputName = vm?.Name ?? InputCatalog.GetPortName(value);
         if (_options.NoSwitch)
         {
-            SetStatus($"Didn't switch {monitorName}: Switchboard was started with --no-switch.");
+            SetStatus($"Didn't switch {monitorName}: InputFlip was started with --no-switch.");
             return SwitchStatus.Failed;
         }
         _settings.Monitors.TryGetValue(monitorId, out var ms);
@@ -545,7 +545,7 @@ public sealed partial class AppController : ISwitchboardActions, IAsyncDisposabl
     private sealed record MouseMove(string MonitorId, int FromX, int FromY, bool Parked);
 
     /// <summary>
-    /// Leaving this PC's input with the mouse on that monitor: moves the mouse to Switchboard's window (or another
+    /// Leaving this PC's input with the mouse on that monitor: moves the mouse to InputFlip's window (or another
     /// screen), since Windows still counts the monitor as there and the pointer would be lost on it. Coming back to this
     /// PC's input: puts it back where it was. Does nothing for monitors whose PC input isn't known.
     /// </summary>
@@ -772,13 +772,13 @@ public sealed partial class AppController : ISwitchboardActions, IAsyncDisposabl
 
     public void RereadCapabilities(string monitorId) => _monitors.RereadCapabilities(monitorId);
 
-    /// <summary>Plain-text report of what Switchboard knows about one monitor (or all), for bug reports.</summary>
+    /// <summary>Plain-text report of what InputFlip knows about one monitor (or all), for bug reports.</summary>
     public string Diagnostics(string? monitorId)
     {
         var sb = new StringBuilder();
         if (monitorId is null)
         {
-            sb.AppendLine($"Switchboard {AppInfo.Version}, Windows {Environment.OSVersion.Version}");
+            sb.AppendLine($"InputFlip {AppInfo.Version}, Windows {Environment.OSVersion.Version}");
             sb.AppendLine();
         }
         foreach (var m in Monitors.Where(m => monitorId is null || m.Id == monitorId))

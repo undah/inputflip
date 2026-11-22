@@ -14,7 +14,7 @@
         <Grid ColumnDefinitions="Auto,*" ColumnSpacing="16" Margin="0,4,0,8">
             <Image Source="ms-appx:///Assets/Switchboard.ico" Width="48" Height="48" VerticalAlignment="Center" AutomationProperties.AccessibilityView="Raw" />
             <StackPanel Grid.Column="1" VerticalAlignment="Center">
-                <TextBlock Text="Switchboard" Style="{StaticResource SubtitleTextBlockStyle}" />
+                <TextBlock Text="InputFlip" Style="{StaticResource SubtitleTextBlockStyle}" />
                 <TextBlock Text="{x:Bind ViewModel.Version}" Style="{StaticResource DescriptionStyle}" IsTextSelectionEnabled="True" />
                 <TextBlock Text="Switches your monitor's input over DDC/CI, the control channel in the display cable." Style="{StaticResource DescriptionStyle}" />
             </StackPanel>
@@ -25,7 +25,7 @@
             IsClosable="False"
             Severity="Warning"
             Title="Switching is off"
-            Message="Switchboard was started with --no-switch, so it reads monitors but never switches them." />
+            Message="InputFlip was started with --no-switch, so it reads monitors but never switches them." />
 
         <controls:SettingsCard Header="Updates" Description="{x:Bind ViewModel.UpdateMessage, Mode=OneWay}" Glyph="&#xE895;">
             <controls:SettingsCard.Action>
@@ -44,7 +44,7 @@
         </controls:SettingsCard>
 
         <TextBlock Text="Help" Style="{StaticResource SectionHeaderStyle}" />
-        <controls:SettingsCard Header="Log" Description="What Switchboard did, with error details. Useful when something doesn't work." Glyph="&#xE9F9;">
+        <controls:SettingsCard Header="Log" Description="What InputFlip did, with error details. Useful when something doesn't work." Glyph="&#xE9F9;">
             <controls:SettingsCard.Action>
                 <StackPanel Spacing="4" HorizontalAlignment="Right">
                     <Button Content="Open log" Command="{x:Bind ViewModel.OpenLogCommand}" HorizontalAlignment="Right" />

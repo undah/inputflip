@@ -1,0 +1,85 @@
+<?xml version="1.0" encoding="utf-8"?>
+<UserControl
+    x:Class="Switchboard.Pages.RulesPage"
+    xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+    xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+    xmlns:local="using:Switchboard"
+    xmlns:controls="using:Switchboard.Controls"
+    xmlns:vm="using:Switchboard.ViewModels"
+    IsTabStop="False">
+
+    <StackPanel Spacing="4">
+        <TextBlock Text="Rules" Style="{StaticResource PageTitleStyle}" />
+        <TextBlock
+            Text="Switch monitors by themselves when something happens. Go back puts back what the monitors showed before the last rule switched them."
+            Style="{StaticResource DescriptionStyle}"
+            Margin="0,0,0,8" />
+
+        <TextBlock Text="USB devices" Style="{StaticResource SectionHeaderStyle}" Margin="1,8,0,2" />
+        <TextBlock
+            Text="With a USB switch box, your keyboard and mouse move between this PC and another computer at the press of a button. A rule for one of them makes the monitor follow: a software KVM."
+            Style="{StaticResource DescriptionStyle}"
+            Margin="0,0,0,8" />
+        <StackPanel Orientation="Horizontal" Spacing="8" Margin="0,0,0,8">
+            <Button Command="{x:Bind ViewModel.AddUsbRuleCommand}">
+                <StackPanel Orientation="Horizontal" Spacing="8">
+                    <FontIcon Glyph="&#xE710;" FontSize="14" />
+                    <TextBlock Text="Add a USB rule" />
+                </StackPanel>
+            </Button>
+            <Button Command="{x:Bind ViewModel.RefreshUsbDevicesCommand}" ToolTipService.ToolTip="Look again for plugged-in USB devices">
+                <StackPanel Orientation="Horizontal" Spacing="8">
+                    <FontIcon Glyph="&#xE72C;" FontSize="14" />
+                    <TextBlock Text="Refresh devices" />
+                </StackPanel>
+            </Button>
+        </StackPanel>
+
+        <ItemsControl ItemsSource="{x:Bind ViewModel.UsbRules}" IsTabStop="False">
+            <ItemsControl.ItemsPanel>
+                <ItemsPanelTemplate>
+                    <StackPanel Spacing="8" />
+                </ItemsPanelTemplate>
+            </ItemsControl.ItemsPanel>
+            <ItemsControl.ItemTemplate>
+                <DataTemplate x:DataType="vm:UsbRuleEditViewModel">
+                    <Border Style="{StaticResource CardStyle}" Padding="16,12">
+                        <Grid RowDefinitions="Auto,Auto" ColumnDefinitions="*,*,*,Auto" ColumnSpacing="16" RowSpacing="8">
+                            <ComboBox Header="Device" ItemsSource="{x:Bind DeviceLabels}" SelectedIndex="{x:Bind DeviceIndex, Mode=TwoWay}" HorizontalAlignment="Stretch" PlaceholderText="Plug the device in, then Refresh devices" />
+                            <ComboBox Grid.Column="1" Header="When it plugs in" ItemsSource="{x:Bind ActionLabels}" SelectedIndex="{x:Bind ConnectedIndex, Mode=TwoWay}" HorizontalAlignment="Stretch" />
+                            <ComboBox Grid.Column="2" Header="When it leaves" ItemsSource="{x:Bind ActionLabels}" SelectedIndex="{x:Bind DisconnectedIndex, Mode=TwoWay}" HorizontalAlignment="Stretch" />
+                            <StackPanel Grid.Column="3" Orientation="Horizontal" Spacing="8" VerticalAlignment="Bottom">
+                                <ToggleSwitch IsOn="{x:Bind IsOn, Mode=TwoWay}" OnContent="On" OffContent="Off" MinWidth="0" AutomationProperties.Name="Rule on" />
+                                <Button Command="{x:Bind DeleteCommand}" AutomationProperties.Name="{x:Bind DeleteName, Mode=OneWay}" ToolTipService.ToolTip="Delete this rule">
+                                    <FontIcon Glyph="&#xE74D;" FontSize="14" />
+                                </Button>
+                            </StackPanel>
+                        </Grid>
+                    </Border>
+                </DataTemplate>
+            </ItemsControl.ItemTemplate>
+        </ItemsControl>
+
+        <TextBlock Text="Lock and sleep" Style="{StaticResource SectionHeaderStyle}" />
+        <controls:SettingsCard Header="When the PC locks" Description="Windows+L, or locking after a while." Glyph="&#xE72E;">
+            <controls:SettingsCard.Action>
+                <ComboBox ItemsSource="{x:Bind ViewModel.ActionLabels}" SelectedIndex="{x:Bind ViewModel.OnLockIndex, Mode=TwoWay}" MinWidth="260" AutomationProperties.Name="When the PC locks" />
+            </controls:SettingsCard.Action>
+        </controls:SettingsCard>
+        <controls:SettingsCard Header="When you unlock it" Glyph="&#xE785;">
+            <controls:SettingsCard.Action>
+                <ComboBox ItemsSource="{x:Bind ViewModel.ActionLabels}" SelectedIndex="{x:Bind ViewModel.OnUnlockIndex, Mode=TwoWay}" MinWidth="260" AutomationProperties.Name="When you unlock the PC" />
+            </controls:SettingsCard.Action>
+        </controls:SettingsCard>
+        <controls:SettingsCard Header="When the PC goes to sleep" Description="Sent just before sleep. Some PCs sleep too fast for the monitor to hear it." Glyph="&#xE708;">
+            <controls:SettingsCard.Action>
+                <ComboBox ItemsSource="{x:Bind ViewModel.ActionLabels}" SelectedIndex="{x:Bind ViewModel.OnSleepIndex, Mode=TwoWay}" MinWidth="260" AutomationProperties.Name="When the PC goes to sleep" />
+            </controls:SettingsCard.Action>
+        </controls:SettingsCard>
+        <controls:SettingsCard Header="When it wakes up" Description="A few seconds after waking, once the monitors are back." Glyph="&#xE706;">
+            <controls:SettingsCard.Action>
+                <ComboBox ItemsSource="{x:Bind ViewModel.ActionLabels}" SelectedIndex="{x:Bind ViewModel.OnWakeIndex, Mode=TwoWay}" MinWidth="260" AutomationProperties.Name="When the PC wakes up" />
+            </controls:SettingsCard.Action>
+        </controls:SettingsCard>
+    </StackPanel>
+</UserControl>

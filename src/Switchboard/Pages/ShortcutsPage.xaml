@@ -12,11 +12,11 @@
         <TextBlock x:Name="PageTitle" Text="Shortcuts" Style="{StaticResource PageTitleStyle}" />
         <TextBlock
             x:Name="PageIntro"
-            Text="Shortcuts work anywhere while Switchboard is running, even with its window minimized. Click a shortcut, then press the new keys."
+            Text="Shortcuts work anywhere while InputFlip is running, even with its window minimized. Click a shortcut, then press the new keys."
             Style="{StaticResource DescriptionStyle}"
             Margin="0,0,0,8" />
 
-        <TextBlock Text="Switchboard" Style="{StaticResource SectionHeaderStyle}" Margin="1,8,0,6" />
+        <TextBlock Text="InputFlip" Style="{StaticResource SectionHeaderStyle}" Margin="1,8,0,6" />
         <controls:SettingsCard Header="{x:Bind ViewModel.ShowShortcut.Title}" Description="{x:Bind ViewModel.ShowShortcut.Description}" Glyph="{x:Bind ViewModel.ShowShortcut.Glyph}">
             <controls:SettingsCard.Action>
                 <controls:ShortcutRecorder Item="{x:Bind ViewModel.ShowShortcut}" />
@@ -25,6 +25,11 @@
         <controls:SettingsCard Header="{x:Bind ViewModel.CycleShortcut.Title}" Description="{x:Bind ViewModel.CycleShortcut.Description}" Glyph="{x:Bind ViewModel.CycleShortcut.Glyph}">
             <controls:SettingsCard.Action>
                 <controls:ShortcutRecorder Item="{x:Bind ViewModel.CycleShortcut}" />
+            </controls:SettingsCard.Action>
+        </controls:SettingsCard>
+        <controls:SettingsCard Header="{x:Bind ViewModel.PickerShortcut.Title}" Description="{x:Bind ViewModel.PickerShortcut.Description}" Glyph="{x:Bind ViewModel.PickerShortcut.Glyph}">
+            <controls:SettingsCard.Action>
+                <controls:ShortcutRecorder Item="{x:Bind ViewModel.PickerShortcut}" />
             </controls:SettingsCard.Action>
         </controls:SettingsCard>
         <controls:SettingsCard Header="Monitor for the next-input shortcut" Description="Automatic uses the main display, or else the first monitor in the window. Hidden monitors and ones with a single input shown are skipped." Glyph="&#xE7F4;">
@@ -36,6 +41,24 @@
                     AutomationProperties.Name="Monitor for the next-input shortcut" />
             </controls:SettingsCard.Action>
         </controls:SettingsCard>
+
+        <TextBlock Text="Scenes" Style="{StaticResource SectionHeaderStyle}" Visibility="{x:Bind local:Ui.Visible(ViewModel.HasScenes), Mode=OneWay}" />
+        <ItemsControl ItemsSource="{x:Bind ViewModel.SceneShortcuts}" IsTabStop="False">
+            <ItemsControl.ItemsPanel>
+                <ItemsPanelTemplate>
+                    <StackPanel Spacing="4" />
+                </ItemsPanelTemplate>
+            </ItemsControl.ItemsPanel>
+            <ItemsControl.ItemTemplate>
+                <DataTemplate x:DataType="vm:ShortcutItemViewModel">
+                    <controls:SettingsCard Header="{x:Bind Title, Mode=OneWay}" Description="{x:Bind Description, Mode=OneWay}" Glyph="{x:Bind Glyph, Mode=OneWay}">
+                        <controls:SettingsCard.Action>
+                            <controls:ShortcutRecorder Item="{x:Bind}" />
+                        </controls:SettingsCard.Action>
+                    </controls:SettingsCard>
+                </DataTemplate>
+            </ItemsControl.ItemTemplate>
+        </ItemsControl>
 
         <ItemsControl ItemsSource="{x:Bind ViewModel.InputShortcutGroups}" IsTabStop="False">
             <ItemsControl.ItemTemplate>

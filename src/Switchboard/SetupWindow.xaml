@@ -6,12 +6,12 @@
     xmlns:local="using:Switchboard"
     xmlns:controls="using:Switchboard.Controls"
     xmlns:vm="using:Switchboard.ViewModels"
-    Title="Set up Switchboard">
+    Title="Set up InputFlip">
 
-    <Grid x:Name="Root" RowDefinitions="Auto,Auto,*,Auto">
+    <Grid x:Name="Root" RowDefinitions="Auto,Auto,*,Auto" Background="{ThemeResource IfBackgroundBrush}">
         <Grid x:Name="TitleArea" Height="48" Background="Transparent" ColumnDefinitions="Auto,*" ColumnSpacing="12" Padding="16,0,0,0">
             <Image Source="ms-appx:///Assets/Switchboard.ico" Width="16" Height="16" VerticalAlignment="Center" AutomationProperties.AccessibilityView="Raw" />
-            <TextBlock Grid.Column="1" Text="Set up Switchboard" Style="{StaticResource CaptionTextBlockStyle}" VerticalAlignment="Center" />
+            <TextBlock Grid.Column="1" Text="Set up InputFlip" Style="{StaticResource CaptionTextBlockStyle}" VerticalAlignment="Center" />
         </Grid>
 
         <StackPanel Grid.Row="1" Padding="40,8,40,4" Spacing="4">
@@ -49,7 +49,7 @@
                             </DataTemplate>
                         </ItemsControl.ItemTemplate>
                     </ItemsControl>
-                    <TextBlock x:Name="NoMonitorsText" Text="No monitors found yet. Switchboard is still looking." Style="{StaticResource DescriptionStyle}" />
+                    <TextBlock x:Name="NoMonitorsText" Text="No monitors found yet. InputFlip is still looking." Style="{StaticResource DescriptionStyle}" />
                     <Button Click="CheckAgain_Click" Margin="0,8,0,0">
                         <StackPanel Orientation="Horizontal" Spacing="8">
                             <FontIcon Glyph="&#xE72C;" FontSize="14" />
@@ -111,7 +111,7 @@
             Background="{ThemeResource LayerFillColorDefaultBrush}"
             BorderBrush="{ThemeResource CardStrokeColorDefaultBrush}"
             BorderThickness="0,1,0,0">
-            <Button x:Name="SkipButton" Content="Skip setup" Click="Skip_Click" ToolTipService.ToolTip="Use what Switchboard found. You can change everything later in Settings." />
+            <Button x:Name="SkipButton" Content="Skip setup" Click="Skip_Click" ToolTipService.ToolTip="Use what InputFlip found. You can change everything later in Settings." />
             <Button x:Name="BackButton" Grid.Column="1" Content="Back" Click="Back_Click" MinWidth="96" />
             <Button x:Name="NextButton" Grid.Column="2" Content="Next" Click="Next_Click" MinWidth="96" Style="{StaticResource AccentButtonStyle}" />
         </Grid>

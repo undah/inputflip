@@ -14,7 +14,7 @@ namespace Switchboard.Controls;
 
 /// <summary>
 /// Shows a shortcut as key caps. Click (or Enter) and press the new combination; Esc cancels, Backspace removes it.
-/// While it listens, Switchboard's global shortcuts are switched off, so pressing one records it instead of
+/// While it listens, InputFlip's global shortcuts are switched off, so pressing one records it instead of
 /// switching a monitor. Conflicts are refused with a message saying who has the shortcut.
 /// </summary>
 public sealed partial class ShortcutRecorder : UserControl
