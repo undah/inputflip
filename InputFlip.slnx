@@ -1,0 +1,14 @@
+﻿<Solution>
+  <Configurations>
+    <Platform Name="x64" />
+  </Configurations>
+  <Folder Name="/src/">
+    <Project Path="src/InputFlip.Core/InputFlip.Core.csproj" />
+    <Project Path="src/InputFlip/InputFlip.csproj">
+      <Platform Project="x64" />
+    </Project>
+  </Folder>
+  <Folder Name="/tests/">
+    <Project Path="tests/InputFlip.Core.Tests/InputFlip.Core.Tests.csproj" />
+  </Folder>
+</Solution>

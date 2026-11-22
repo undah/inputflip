@@ -1,0 +1,123 @@
+<?xml version="1.0" encoding="utf-8"?>
+<UserControl
+    x:Class="InputFlip.Pages.AboutPage"
+    xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+    xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+    xmlns:local="using:InputFlip"
+    xmlns:controls="using:InputFlip.Controls"
+    xmlns:vm="using:InputFlip.ViewModels"
+    IsTabStop="False">
+
+    <StackPanel Spacing="4">
+        <TextBlock Text="About" Style="{StaticResource PageTitleStyle}" />
+
+        <Grid ColumnDefinitions="Auto,*" ColumnSpacing="16" Margin="0,4,0,8">
+            <Image Source="ms-appx:///Assets/InputFlip.ico" Width="48" Height="48" VerticalAlignment="Center" AutomationProperties.AccessibilityView="Raw" />
+            <StackPanel Grid.Column="1" VerticalAlignment="Center">
+                <TextBlock Text="InputFlip" Style="{StaticResource SubtitleTextBlockStyle}" />
+                <TextBlock Text="{x:Bind ViewModel.Version}" Style="{StaticResource DescriptionStyle}" IsTextSelectionEnabled="True" />
+                <TextBlock Text="Switches your monitor's input over DDC/CI, the control channel in the display cable." Style="{StaticResource DescriptionStyle}" />
+            </StackPanel>
+        </Grid>
+
+        <InfoBar
+            IsOpen="{x:Bind ViewModel.NoSwitch}"
+            IsClosable="False"
+            Severity="Warning"
+            Title="Switching is off"
+            Message="InputFlip was started with --no-switch, so it reads monitors but never switches them." />
+
+        <controls:SettingsCard Header="Updates" Description="{x:Bind ViewModel.UpdateMessage, Mode=OneWay}" Glyph="&#xE895;">
+            <controls:SettingsCard.Action>
+                <StackPanel Orientation="Horizontal" Spacing="8" HorizontalAlignment="Right">
+                    <Button
+                        Content="Install and restart"
+                        Style="{StaticResource AccentButtonStyle}"
+                        Command="{x:Bind ViewModel.InstallUpdateCommand}"
+                        Visibility="{x:Bind local:Ui.Visible(ViewModel.CanInstallUpdate), Mode=OneWay}" />
+                    <Button
+                        Content="Check for updates"
+                        Command="{x:Bind ViewModel.CheckUpdatesCommand}"
+                        IsEnabled="{x:Bind ViewModel.CanCheckUpdates, Mode=OneWay}" />
+                </StackPanel>
+            </controls:SettingsCard.Action>
+        </controls:SettingsCard>
+
+        <TextBlock Text="Help" Style="{StaticResource SectionHeaderStyle}" />
+        <controls:SettingsCard Header="Log" Description="What InputFlip did, with error details. Useful when something doesn't work." Glyph="&#xE9F9;">
+            <controls:SettingsCard.Action>
+                <StackPanel Spacing="4" HorizontalAlignment="Right">
+                    <Button Content="Open log" Command="{x:Bind ViewModel.OpenLogCommand}" HorizontalAlignment="Right" />
+                    <TextBlock Text="{x:Bind ViewModel.LogMessage, Mode=OneWay}" Visibility="{x:Bind local:Ui.VisibleText(ViewModel.LogMessage), Mode=OneWay}" Style="{StaticResource DescriptionStyle}" />
+                </StackPanel>
+            </controls:SettingsCard.Action>
+        </controls:SettingsCard>
+        <controls:SettingsCard Header="Settings folder" Description="{x:Bind ViewModel.DataFolder}" Glyph="&#xE8B7;">
+            <controls:SettingsCard.Action>
+                <Button Content="Open folder" Command="{x:Bind ViewModel.OpenDataFolderCommand}" AutomationProperties.Name="Open the settings folder" />
+            </controls:SettingsCard.Action>
+        </controls:SettingsCard>
+        <controls:SettingsCard Header="Setup" Description="Go through the first-run setup again: monitors, input names and shortcuts." Glyph="&#xE8FC;">
+            <controls:SettingsCard.Action>
+                <Button Content="Run setup" Command="{x:Bind ViewModel.RunSetupCommand}" />
+            </controls:SettingsCard.Action>
+        </controls:SettingsCard>
+
+        <Grid ColumnDefinitions="*,Auto" Margin="0,24,0,6">
+            <StackPanel>
+                <TextBlock Text="Diagnostics" Style="{StaticResource BodyStrongTextBlockStyle}" AutomationProperties.HeadingLevel="Level2" />
+                <TextBlock Text="What each monitor reports, including its capabilities string. Copy it when you report a problem." Style="{StaticResource DescriptionStyle}" />
+            </StackPanel>
+            <Button Grid.Column="1" Command="{x:Bind ViewModel.CopyAllDiagnosticsCommand}" VerticalAlignment="Bottom" AutomationProperties.Name="Copy diagnostics for all monitors">
+                <StackPanel Orientation="Horizontal" Spacing="8">
+                    <FontIcon Glyph="&#xE8C8;" FontSize="14" />
+                    <TextBlock Text="Copy all" />
+                </StackPanel>
+            </Button>
+        </Grid>
+        <ItemsControl ItemsSource="{x:Bind ViewModel.Diagnostics}" IsTabStop="False">
+            <ItemsControl.ItemsPanel>
+                <ItemsPanelTemplate>
+                    <StackPanel Spacing="4" />
+                </ItemsPanelTemplate>
+            </ItemsControl.ItemsPanel>
+            <ItemsControl.ItemTemplate>
+                <DataTemplate x:DataType="vm:DiagnosticsViewModel">
+                    <Border Style="{StaticResource CardStyle}" Padding="16,12">
+                        <StackPanel Spacing="8">
+                            <Grid ColumnDefinitions="*,Auto" ColumnSpacing="8">
+                                <StackPanel VerticalAlignment="Center">
+                                    <TextBlock Text="{x:Bind Title, Mode=OneWay}" />
+                                    <TextBlock Text="{x:Bind Summary, Mode=OneWay}" Style="{StaticResource DescriptionStyle}" IsTextSelectionEnabled="True" />
+                                </StackPanel>
+                                <StackPanel Grid.Column="1" Orientation="Horizontal" Spacing="4" VerticalAlignment="Center">
+                                    <Button Command="{x:Bind RereadCommand}" AutomationProperties.Name="{x:Bind RereadName, Mode=OneWay}" ToolTipService.ToolTip="Read the capabilities string again">
+                                        <StackPanel Orientation="Horizontal" Spacing="8">
+                                            <FontIcon Glyph="&#xE72C;" FontSize="14" />
+                                            <TextBlock Text="Read again" />
+                                        </StackPanel>
+                                    </Button>
+                                    <Button Command="{x:Bind CopyCommand}" AutomationProperties.Name="{x:Bind CopyName, Mode=OneWay}" ToolTipService.ToolTip="Copy">
+                                        <StackPanel Orientation="Horizontal" Spacing="8">
+                                            <FontIcon Glyph="&#xE8C8;" FontSize="14" />
+                                            <TextBlock Text="Copy" />
+                                        </StackPanel>
+                                    </Button>
+                                </StackPanel>
+                            </Grid>
+                            <Border Background="{ThemeResource SubtleFillColorSecondaryBrush}" CornerRadius="{ThemeResource ControlCornerRadius}" Padding="10,8">
+                                <TextBlock
+                                    Text="{x:Bind Capabilities, Mode=OneWay}"
+                                    FontFamily="{StaticResource MonoFont}"
+                                    FontSize="12"
+                                    TextWrapping="Wrap"
+                                    IsTextSelectionEnabled="True"
+                                    AutomationProperties.Name="Capabilities string" />
+                            </Border>
+                        </StackPanel>
+                    </Border>
+                </DataTemplate>
+            </ItemsControl.ItemTemplate>
+        </ItemsControl>
+    </StackPanel>
+</UserControl>

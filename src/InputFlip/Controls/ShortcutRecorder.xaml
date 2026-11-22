@@ -1,0 +1,69 @@
+<?xml version="1.0" encoding="utf-8"?>
+<UserControl
+    x:Class="InputFlip.Controls.ShortcutRecorder"
+    xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+    xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml">
+
+    <StackPanel Spacing="4" HorizontalAlignment="Right">
+        <StackPanel Orientation="Horizontal" Spacing="4" HorizontalAlignment="Right">
+            <Button
+                x:Name="RecordButton"
+                MinWidth="150"
+                MinHeight="32"
+                Padding="8,4"
+                HorizontalContentAlignment="Center"
+                Click="RecordButton_Click"
+                PreviewKeyDown="RecordButton_PreviewKeyDown"
+                LostFocus="RecordButton_LostFocus">
+                <Grid>
+                    <ItemsControl x:Name="Keys" IsTabStop="False">
+                        <ItemsControl.ItemsPanel>
+                            <ItemsPanelTemplate>
+                                <StackPanel Orientation="Horizontal" Spacing="4" />
+                            </ItemsPanelTemplate>
+                        </ItemsControl.ItemsPanel>
+                        <ItemsControl.ItemTemplate>
+                            <DataTemplate x:DataType="x:String">
+                                <Border
+                                    MinWidth="24"
+                                    Padding="6,1,6,2"
+                                    CornerRadius="{ThemeResource ControlCornerRadius}"
+                                    Background="{ThemeResource AccentFillColorDefaultBrush}">
+                                    <TextBlock Text="{x:Bind}" FontSize="12" HorizontalAlignment="Center" Foreground="{ThemeResource TextOnAccentFillColorPrimaryBrush}" />
+                                </Border>
+                            </DataTemplate>
+                        </ItemsControl.ItemTemplate>
+                    </ItemsControl>
+                    <TextBlock x:Name="Placeholder" Foreground="{ThemeResource TextFillColorSecondaryBrush}" />
+                </Grid>
+            </Button>
+            <Button
+                x:Name="ClearButton"
+                Style="{StaticResource IconButtonStyle}"
+                Width="32"
+                Click="ClearButton_Click">
+                <FontIcon Glyph="&#xE711;" FontSize="12" />
+            </Button>
+        </StackPanel>
+        <TextBlock
+            x:Name="MessageText"
+            Style="{StaticResource CaptionTextBlockStyle}"
+            Foreground="{ThemeResource TextFillColorSecondaryBrush}"
+            TextWrapping="Wrap"
+            TextAlignment="Right"
+            MaxWidth="300"
+            HorizontalAlignment="Right"
+            AutomationProperties.LiveSetting="Polite"
+            Visibility="Collapsed" />
+        <TextBlock
+            x:Name="ErrorText"
+            Style="{StaticResource CaptionTextBlockStyle}"
+            Foreground="{ThemeResource SystemFillColorCriticalBrush}"
+            TextWrapping="Wrap"
+            TextAlignment="Right"
+            MaxWidth="300"
+            HorizontalAlignment="Right"
+            AutomationProperties.LiveSetting="Assertive"
+            Visibility="Collapsed" />
+    </StackPanel>
+</UserControl>
