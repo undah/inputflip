@@ -1,0 +1,23 @@
+<?xml version="1.0" encoding="utf-8"?>
+<Window
+    x:Class="Switchboard.PickerWindow"
+    xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+    xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+    Title="InputFlip picker">
+
+    <!-- The pop-up picker: opens by the mouse; arrow keys and Enter, or 1 to 9; Esc or clicking elsewhere closes it. -->
+    <Grid
+        x:Name="Root"
+        Background="{ThemeResource IfBackgroundBrush}"
+        BorderBrush="{ThemeResource IfStrokeBrush}"
+        BorderThickness="1"
+        RowDefinitions="Auto,*">
+        <Grid Padding="14,10,14,4" ColumnDefinitions="*,Auto">
+            <TextBlock Text="InputFlip" FontFamily="{StaticResource DisplayFont}" FontWeight="SemiBold" FontSize="14" Foreground="{ThemeResource IfTextBrush}" />
+            <TextBlock Grid.Column="1" Text="Enter to switch, Esc to close" Style="{StaticResource DescriptionStyle}" VerticalAlignment="Center" />
+        </Grid>
+        <ScrollViewer Grid.Row="1" VerticalScrollBarVisibility="Auto" IsTabStop="False">
+            <StackPanel x:Name="Items" Padding="10,4,10,10" Spacing="4" XYFocusKeyboardNavigation="Enabled" TabFocusNavigation="Cycle" />
+        </ScrollViewer>
+    </Grid>
+</Window>

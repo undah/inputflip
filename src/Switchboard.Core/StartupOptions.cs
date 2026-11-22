@@ -3,7 +3,7 @@ namespace Switchboard.Core;
 /// <summary>
 /// Command-line options. Normal use needs none; they're for testing and diagnostics:
 /// <list type="bullet">
-/// <item><c>--data-dir &lt;folder&gt;</c> (or <c>SWITCHBOARD_DATA_DIR</c>): use another folder for settings.json and the log.
+/// <item><c>--data-dir &lt;folder&gt;</c> (or <c>INPUTFLIP_DATA_DIR</c>): use another folder for settings.json and the log.
 /// A folder without settings.json starts the first-run setup.</item>
 /// <item><c>--no-switch</c>: never send a switch command. Reads still work.</item>
 /// <item><c>--open settings[:general|monitors|shortcuts|about]</c> or <c>--open setup</c>: open that window at start.</item>
@@ -39,6 +39,9 @@ public sealed record StartupOptions(string? DataDirectory, bool NoSwitch, string
                 case "--no-switch": noSwitch = true; break;
                 case "--open": open = Value()?.Trim().ToLowerInvariant(); break;
                 case "--export-icon": exportIcon = Value(); break;
+                // Commands (--switch MSI PS5 and the like) are read by RemoteCommand, along with their values.
+                case "--switch" or "--scene" or "--toggle" or "--brightness" or "--contrast" or "--volume" or "--mute" or "--unmute" or "--list" or "--picker" or "--show":
+                    break;
                 default:
                     // Velopack and Windows can pass their own arguments; ignore what isn't ours.
                     if (arg.StartsWith("--", StringComparison.Ordinal)) problems.Add($"Unknown option {arg}.");

@@ -23,6 +23,83 @@ public interface ISwitchboardActions
     void SetPcInput(string monitorId, uint value);
 
     void OpenSettings(string? page, string? monitorId = null);
+
+    Task RunSceneAsync(string sceneId);
+
+    /// <summary>Reads brightness, contrast and volume when the panel opens (DDC/CI is slow, so only then).</summary>
+    void LoadLevels(string monitorId);
+
+    /// <summary>A slider moved: 0 to 100. Sent without piling up commands.</summary>
+    void SetLevel(string monitorId, byte vcpCode, int percent);
+
+    void SetMuted(string monitorId, bool muted);
+}
+
+/// <summary>A scene as a pill in the main window.</summary>
+public sealed class SceneViewModel : ObservableObject
+{
+    private string _name = "";
+    private string _icon = "scene";
+    private string? _hotkey;
+    private bool _isActive;
+
+    public SceneViewModel(ISwitchboardActions actions, string id)
+    {
+        Id = id;
+        RunCommand = new AsyncRelayCommand(() => actions.RunSceneAsync(Id));
+        EditCommand = new RelayCommand(() => actions.OpenSettings("scenes"));
+    }
+
+    public string Id { get; }
+
+    public IAsyncRelayCommand RunCommand { get; }
+
+    public IRelayCommand EditCommand { get; }
+
+    public string Name
+    {
+        get => _name;
+        set
+        {
+            if (SetProperty(ref _name, value)) OnPropertyChanged(nameof(AccessibleName));
+        }
+    }
+
+    public string Icon { get => _icon; set => SetProperty(ref _icon, value); }
+
+    public string? Hotkey
+    {
+        get => _hotkey;
+        set
+        {
+            if (SetProperty(ref _hotkey, value)) OnPropertyChanged(nameof(Tooltip));
+        }
+    }
+
+    /// <summary>Every monitor the scene switches shows its input now.</summary>
+    public bool IsActive
+    {
+        get => _isActive;
+        set
+        {
+            if (SetProperty(ref _isActive, value))
+            {
+                OnPropertyChanged(nameof(AccessibleName));
+                OnPropertyChanged(nameof(Tooltip));
+            }
+        }
+    }
+
+    public string AccessibleName => _isActive ? $"Scene {_name}, showing now. Press to go back." : $"Run scene {_name}";
+
+    public string Tooltip
+    {
+        get
+        {
+            string what = _isActive ? "Showing now. Click to go back to what was on before." : "Switches every monitor in the scene at once.";
+            return _hotkey is null ? what : $"{what} ({_hotkey})";
+        }
+    }
 }
 
 public sealed class InputViewModel : ObservableObject
@@ -277,6 +354,93 @@ public sealed class MonitorViewModel : ObservableObject
 
     public string HideMenuText => _isHidden ? "Show this monitor" : "Hide this monitor";
 
+    // ---- Brightness, contrast, volume ----
+
+    private bool _hasLevels;
+    private bool _levelsOpen;
+    private bool _hasBrightness, _hasContrast, _hasVolume;
+    private double _brightness = 50, _contrast = 50, _volume = 50;
+    private bool _isMuted;
+    private string? _levelsMessage;
+
+    /// <summary>While the app fills in values read from the monitor, so they aren't sent straight back.</summary>
+    internal bool SyncingLevels { get; set; }
+
+    /// <summary>The monitor offers brightness, contrast or volume (from its capabilities string).</summary>
+    public bool HasLevels { get => _hasLevels; set => SetProperty(ref _hasLevels, value); }
+
+    /// <summary>The picture and sound panel under the tiles is open.</summary>
+    public bool LevelsOpen
+    {
+        get => _levelsOpen;
+        set
+        {
+            if (!SetProperty(ref _levelsOpen, value)) return;
+            OnPropertyChanged(nameof(LevelsButtonName));
+            if (value) _actions.LoadLevels(Id);
+        }
+    }
+
+    public string LevelsButtonName => _levelsOpen ? "Hide brightness and volume" : "Brightness, contrast and volume";
+
+    public bool HasBrightness { get => _hasBrightness; set => SetProperty(ref _hasBrightness, value); }
+
+    public bool HasContrast { get => _hasContrast; set => SetProperty(ref _hasContrast, value); }
+
+    public bool HasVolume { get => _hasVolume; set => SetProperty(ref _hasVolume, value); }
+
+    public double Brightness
+    {
+        get => _brightness;
+        set
+        {
+            if (SetProperty(ref _brightness, value) && !SyncingLevels) _actions.SetLevel(Id, Core.Ddc.VcpCodes.Brightness, (int)Math.Round(value));
+        }
+    }
+
+    public double Contrast
+    {
+        get => _contrast;
+        set
+        {
+            if (SetProperty(ref _contrast, value) && !SyncingLevels) _actions.SetLevel(Id, Core.Ddc.VcpCodes.Contrast, (int)Math.Round(value));
+        }
+    }
+
+    public double Volume
+    {
+        get => _volume;
+        set
+        {
+            if (SetProperty(ref _volume, value) && !SyncingLevels) _actions.SetLevel(Id, Core.Ddc.VcpCodes.SpeakerVolume, (int)Math.Round(value));
+        }
+    }
+
+    public bool IsMuted
+    {
+        get => _isMuted;
+        set
+        {
+            if (!SetProperty(ref _isMuted, value)) return;
+            OnPropertyChanged(nameof(MuteButtonName));
+            if (!SyncingLevels) _actions.SetMuted(Id, value);
+        }
+    }
+
+    public string MuteButtonName => _isMuted ? "Turn the monitor's sound back on" : "Mute the monitor's speakers";
+
+    /// <summary>"Reading…", or what went wrong reading the levels.</summary>
+    public string? LevelsMessage
+    {
+        get => _levelsMessage;
+        set
+        {
+            if (SetProperty(ref _levelsMessage, value)) OnPropertyChanged(nameof(HasLevelsMessage));
+        }
+    }
+
+    public bool HasLevelsMessage => !string.IsNullOrEmpty(_levelsMessage);
+
     internal void SyncInputs(IReadOnlyList<DisplayInput> inputs)
     {
         for (int i = 0; i < inputs.Count; i++)
@@ -307,6 +471,12 @@ public sealed class MainViewModel : ObservableObject
     private bool _isRefreshing;
 
     public ObservableCollection<MonitorViewModel> Monitors { get; } = new();
+
+    public ObservableCollection<SceneViewModel> Scenes { get; } = new();
+
+    private bool _hasScenes;
+
+    public bool HasScenes { get => _hasScenes; set => SetProperty(ref _hasScenes, value); }
 
     public string Status
     {
@@ -389,7 +559,7 @@ public sealed class MainViewModel : ObservableObject
 
     public bool HasUpdate => _updateVersion is not null;
 
-    public string UpdateTooltip => $"Update to version {_updateVersion}. Switchboard restarts.";
+    public string UpdateTooltip => $"Update to version {_updateVersion}. InputFlip restarts.";
 
     public bool IsUpdating { get => _isUpdating; set => SetProperty(ref _isUpdating, value); }
 

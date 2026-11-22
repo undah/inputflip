@@ -43,13 +43,13 @@ public sealed partial class MainWindow : Window
         _presenter.IsMaximizable = false;
         _presenter.IsMinimizable = true;
         AppWindow.SetPresenter(_presenter);
-        WindowChrome.SetUp(this, TitleArea, "Switchboard");
+        WindowChrome.SetUp(this, TitleArea, "InputFlip");
 
         AppWindow.Closing += (_, e) =>
         {
             if (_closingForGood) return;
             e.Cancel = true;
-            _controller.Quit();
+            _controller.OnWindowClosing();
         };
         AppWindow.Changed += OnAppWindowChanged;
         Activated += (_, e) =>
@@ -113,6 +113,9 @@ public sealed partial class MainWindow : Window
 
     public void SetAlwaysOnTop(bool alwaysOnTop) => _presenter.IsAlwaysOnTop = alwaysOnTop;
 
+    /// <summary>Hides the window; the tray icon brings it back ("close to the tray").</summary>
+    public void HideWindow() => AppWindow.Hide();
+
     public void CloseForGood()
     {
         _closingForGood = true;
@@ -143,7 +146,7 @@ public sealed partial class MainWindow : Window
         try
         {
             var peer = FrameworkElementAutomationPeer.FromElement(SettingsButton) ?? FrameworkElementAutomationPeer.CreatePeerForElement(SettingsButton);
-            peer?.RaiseNotificationEvent(AutomationNotificationKind.ActionCompleted, AutomationNotificationProcessing.ImportantMostRecent, text, "SwitchboardSwitch");
+            peer?.RaiseNotificationEvent(AutomationNotificationKind.ActionCompleted, AutomationNotificationProcessing.ImportantMostRecent, text, "InputFlipSwitch");
         }
         catch (Exception ex)
         {

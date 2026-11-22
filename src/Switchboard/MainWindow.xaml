@@ -5,14 +5,16 @@
     xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
     xmlns:local="using:Switchboard"
     xmlns:vm="using:Switchboard.ViewModels"
-    Title="Switchboard">
+    Title="InputFlip">
 
-    <Grid x:Name="Root" RowDefinitions="Auto,Auto,Auto" VerticalAlignment="Top">
+    <Grid x:Name="Root" RowDefinitions="Auto,Auto,Auto,Auto" Background="{ThemeResource IfBackgroundBrush}">
         <Grid.Resources>
+            <!-- An input: a tile. Coral when it's showing now; it flips over when it becomes the one showing. -->
             <DataTemplate x:Key="InputTemplate" x:DataType="vm:InputViewModel">
                 <Grid Opacity="{x:Bind local:Ui.HiddenOpacity(IsHidden), Mode=OneWay}">
                     <Button
-                        Style="{x:Bind local:Ui.RowStyle(IsCurrent), Mode=OneWay}"
+                        Style="{x:Bind local:Ui.TileStyle(IsCurrent), Mode=OneWay}"
+                        local:Motion.FlipWhen="{x:Bind IsCurrent, Mode=OneWay}"
                         Command="{x:Bind SwitchCommand}"
                         Visibility="{x:Bind local:Ui.Collapsed(IsRenaming), Mode=OneWay}"
                         AutomationProperties.Name="{x:Bind AccessibleName, Mode=OneWay}"
@@ -43,7 +45,7 @@
                                 </MenuFlyoutSubItem>
                                 <MenuFlyoutItem Text="This PC is plugged in here" Command="{x:Bind SetPcInputCommand}"
                                     Visibility="{x:Bind local:Ui.Visible(IsNotThisPc), Mode=OneWay}"
-                                    ToolTipService.ToolTip="Moves the This PC tag to this input. Switchboard guesses it from the cable type Windows reports.">
+                                    ToolTipService.ToolTip="Moves the This PC tag to this input. InputFlip guesses it from the cable type Windows reports.">
                                     <MenuFlyoutItem.Icon><FontIcon Glyph="&#xE977;" /></MenuFlyoutItem.Icon>
                                 </MenuFlyoutItem>
                                 <MenuFlyoutItem Text="{x:Bind BlankWhenLeavingMenuText, Mode=OneWay}" Command="{x:Bind BlankWhenLeavingCommand}"
@@ -57,29 +59,43 @@
                             </MenuFlyout>
                         </Button.ContextFlyout>
 
-                        <Grid ColumnDefinitions="Auto,*,Auto" ColumnSpacing="12" Padding="0,6">
-                            <FontIcon FontSize="16" Glyph="{x:Bind local:Ui.IconGlyph(Icon), Mode=OneWay}" />
-                            <StackPanel Grid.Column="1" VerticalAlignment="Center">
-                                <TextBlock Text="{x:Bind Name, Mode=OneWay}" TextTrimming="CharacterEllipsis" />
-                                <TextBlock
-                                    Text="{x:Bind Subtitle, Mode=OneWay}"
-                                    Visibility="{x:Bind local:Ui.Visible(HasSubtitle), Mode=OneWay}"
-                                    Style="{StaticResource CaptionTextBlockStyle}"
-                                    Opacity="0.78" />
-                            </StackPanel>
-                            <Grid Grid.Column="2" VerticalAlignment="Center">
+                        <Grid RowDefinitions="Auto,*,Auto,Auto">
+                            <Grid ColumnDefinitions="*,Auto">
+                                <FontIcon
+                                    FontSize="22"
+                                    HorizontalAlignment="Left"
+                                    Glyph="{x:Bind local:Ui.IconGlyph(Icon), Mode=OneWay}"
+                                    Style="{x:Bind local:Ui.TileIconStyle(IsCurrent), Mode=OneWay}" />
                                 <ProgressRing
+                                    Grid.Column="1"
                                     Width="16"
                                     Height="16"
                                     IsActive="{x:Bind IsBusy, Mode=OneWay}"
                                     Visibility="{x:Bind local:Ui.Visible(IsBusy), Mode=OneWay}" />
                                 <TextBlock
+                                    Grid.Column="1"
                                     Text="{x:Bind HotkeyText, Mode=OneWay}"
-                                    Style="{StaticResource CaptionTextBlockStyle}"
+                                    FontSize="11"
                                     FontFamily="{StaticResource MonoFont}"
-                                    Opacity="0.78"
+                                    Opacity="{x:Bind local:Ui.SubtleOpacity(IsCurrent), Mode=OneWay}"
+                                    VerticalAlignment="Top"
                                     Visibility="{x:Bind local:Ui.Collapsed(IsBusy), Mode=OneWay}" />
                             </Grid>
+                            <TextBlock
+                                Grid.Row="2"
+                                Margin="0,10,0,0"
+                                Text="{x:Bind Name, Mode=OneWay}"
+                                FontSize="15"
+                                FontWeight="SemiBold"
+                                FontFamily="{StaticResource DisplayFont}"
+                                TextTrimming="CharacterEllipsis" />
+                            <TextBlock
+                                Grid.Row="3"
+                                Text="{x:Bind Subtitle, Mode=OneWay}"
+                                Visibility="{x:Bind local:Ui.Visible(HasSubtitle), Mode=OneWay}"
+                                FontSize="12"
+                                Opacity="{x:Bind local:Ui.SubtleOpacity(IsCurrent), Mode=OneWay}"
+                                TextTrimming="CharacterEllipsis" />
                         </Grid>
                     </Button>
 
@@ -89,45 +105,124 @@
                         Text="{x:Bind Name, Mode=OneWay}"
                         PlaceholderText="{x:Bind PortName, Mode=OneWay}"
                         AutomationProperties.Name="{x:Bind RenameAccessibleName, Mode=OneWay}"
-                        Margin="0,4"
+                        VerticalAlignment="Center"
                         Loaded="RenameBox_Loaded"
                         KeyDown="RenameBox_KeyDown"
                         LostFocus="RenameBox_LostFocus" />
                 </Grid>
             </DataTemplate>
 
+            <DataTemplate x:Key="SceneTemplate" x:DataType="vm:SceneViewModel">
+                <Button
+                    Style="{x:Bind local:Ui.SceneStyle(IsActive), Mode=OneWay}"
+                    local:Motion.FlipWhen="{x:Bind IsActive, Mode=OneWay}"
+                    Command="{x:Bind RunCommand}"
+                    AutomationProperties.Name="{x:Bind AccessibleName, Mode=OneWay}"
+                    ToolTipService.ToolTip="{x:Bind Tooltip, Mode=OneWay}">
+                    <Button.ContextFlyout>
+                        <MenuFlyout>
+                            <MenuFlyoutItem Text="Edit scenes" Command="{x:Bind EditCommand}">
+                                <MenuFlyoutItem.Icon><FontIcon Glyph="&#xE70F;" /></MenuFlyoutItem.Icon>
+                            </MenuFlyoutItem>
+                        </MenuFlyout>
+                    </Button.ContextFlyout>
+                    <StackPanel Orientation="Horizontal" Spacing="8">
+                        <FontIcon FontSize="14" Glyph="{x:Bind local:Ui.IconGlyph(Icon), Mode=OneWay}" />
+                        <TextBlock Text="{x:Bind Name, Mode=OneWay}" FontWeight="SemiBold" TextTrimming="CharacterEllipsis" />
+                    </StackPanel>
+                </Button>
+            </DataTemplate>
+
             <DataTemplate x:Key="MonitorTemplate" x:DataType="vm:MonitorViewModel">
                 <StackPanel Opacity="{x:Bind local:Ui.HiddenOpacity(IsHidden), Mode=OneWay}">
-                    <TextBlock
-                        Text="{x:Bind Name, Mode=OneWay}"
-                        Style="{StaticResource BodyStrongTextBlockStyle}"
-                        AutomationProperties.HeadingLevel="Level2"
-                        TextTrimming="CharacterEllipsis"
-                        Margin="2,0,2,6">
-                        <TextBlock.ContextFlyout>
-                            <MenuFlyout>
-                                <MenuFlyoutItem Text="{x:Bind HideMenuText, Mode=OneWay}" Command="{x:Bind HideCommand}">
-                                    <MenuFlyoutItem.Icon><FontIcon Glyph="&#xED1A;" /></MenuFlyoutItem.Icon>
-                                </MenuFlyoutItem>
-                                <MenuFlyoutItem Text="Monitor settings" Command="{x:Bind SettingsCommand}">
-                                    <MenuFlyoutItem.Icon><FontIcon Glyph="&#xE713;" /></MenuFlyoutItem.Icon>
-                                </MenuFlyoutItem>
-                            </MenuFlyout>
-                        </TextBlock.ContextFlyout>
-                    </TextBlock>
+                    <Grid ColumnDefinitions="*,Auto" Margin="2,0,0,6" MinHeight="28">
+                        <TextBlock
+                            Text="{x:Bind Name, Mode=OneWay}"
+                            Style="{StaticResource MonitorHeaderStyle}"
+                            VerticalAlignment="Center">
+                            <TextBlock.ContextFlyout>
+                                <MenuFlyout>
+                                    <MenuFlyoutItem Text="{x:Bind HideMenuText, Mode=OneWay}" Command="{x:Bind HideCommand}">
+                                        <MenuFlyoutItem.Icon><FontIcon Glyph="&#xED1A;" /></MenuFlyoutItem.Icon>
+                                    </MenuFlyoutItem>
+                                    <MenuFlyoutItem Text="Monitor settings" Command="{x:Bind SettingsCommand}">
+                                        <MenuFlyoutItem.Icon><FontIcon Glyph="&#xE713;" /></MenuFlyoutItem.Icon>
+                                    </MenuFlyoutItem>
+                                </MenuFlyout>
+                            </TextBlock.ContextFlyout>
+                        </TextBlock>
+                        <ToggleButton
+                            Grid.Column="1"
+                            Width="32"
+                            Height="28"
+                            Padding="0"
+                            CornerRadius="8"
+                            BorderThickness="0"
+                            Background="{ThemeResource SubtleFillColorTransparentBrush}"
+                            IsChecked="{x:Bind LevelsOpen, Mode=TwoWay}"
+                            Visibility="{x:Bind local:Ui.Visible(HasLevels), Mode=OneWay}"
+                            AutomationProperties.Name="{x:Bind LevelsButtonName, Mode=OneWay}"
+                            ToolTipService.ToolTip="{x:Bind LevelsButtonName, Mode=OneWay}">
+                            <FontIcon Glyph="&#xE706;" FontSize="14" />
+                        </ToggleButton>
+                    </Grid>
                     <TextBlock
                         Text="{x:Bind Message, Mode=OneWay}"
                         Visibility="{x:Bind local:Ui.Visible(HasMessage), Mode=OneWay}"
                         Style="{StaticResource DescriptionStyle}"
                         Margin="2,-2,2,6" />
-                    <Border Style="{StaticResource CardStyle}" Padding="4" Visibility="{x:Bind local:Ui.Visible(HasInputs), Mode=OneWay}">
-                        <ItemsControl ItemsSource="{x:Bind Inputs}" ItemTemplate="{StaticResource InputTemplate}" IsTabStop="False">
-                            <ItemsControl.ItemsPanel>
-                                <ItemsPanelTemplate>
-                                    <StackPanel Spacing="2" />
-                                </ItemsPanelTemplate>
-                            </ItemsControl.ItemsPanel>
-                        </ItemsControl>
+                    <ItemsRepeater
+                        ItemsSource="{x:Bind Inputs}"
+                        ItemTemplate="{StaticResource InputTemplate}"
+                        Visibility="{x:Bind local:Ui.Visible(HasInputs), Mode=OneWay}">
+                        <ItemsRepeater.Layout>
+                            <UniformGridLayout MinItemWidth="150" MinItemHeight="96" MinColumnSpacing="8" MinRowSpacing="8" ItemsStretch="Fill" MaximumRowsOrColumns="2" />
+                        </ItemsRepeater.Layout>
+                    </ItemsRepeater>
+
+                    <!-- Brightness, contrast and the monitor's speakers. Read from the monitor when it opens. -->
+                    <Border
+                        x:Name="LevelsPanel"
+                        x:Load="{x:Bind LevelsOpen, Mode=OneWay}"
+                        Margin="0,8,0,0"
+                        Padding="12,6,8,6"
+                        CornerRadius="14"
+                        Background="{ThemeResource IfSurfaceBrush}"
+                        BorderBrush="{ThemeResource IfStrokeBrush}"
+                        BorderThickness="1">
+                        <StackPanel>
+                            <TextBlock
+                                Text="{x:Bind LevelsMessage, Mode=OneWay}"
+                                Visibility="{x:Bind local:Ui.Visible(HasLevelsMessage), Mode=OneWay}"
+                                Style="{StaticResource DescriptionStyle}"
+                                Margin="0,4" />
+                            <Grid ColumnDefinitions="28,*,36" Visibility="{x:Bind local:Ui.Visible(HasBrightness), Mode=OneWay}">
+                                <FontIcon Glyph="&#xE706;" FontSize="14" HorizontalAlignment="Left" Style="{StaticResource TileIconStyle}" />
+                                <Slider Grid.Column="1" Minimum="0" Maximum="100" StepFrequency="1" Value="{x:Bind Brightness, Mode=TwoWay}" AutomationProperties.Name="Brightness" />
+                                <TextBlock Grid.Column="2" Text="{x:Bind local:Ui.Percent(Brightness), Mode=OneWay}" Style="{StaticResource DescriptionStyle}" HorizontalAlignment="Right" VerticalAlignment="Center" AutomationProperties.AccessibilityView="Raw" />
+                            </Grid>
+                            <Grid ColumnDefinitions="28,*,36" Visibility="{x:Bind local:Ui.Visible(HasContrast), Mode=OneWay}">
+                                <FontIcon Glyph="&#xE793;" FontSize="14" HorizontalAlignment="Left" Style="{StaticResource TileIconStyle}" />
+                                <Slider Grid.Column="1" Minimum="0" Maximum="100" StepFrequency="1" Value="{x:Bind Contrast, Mode=TwoWay}" AutomationProperties.Name="Contrast" />
+                                <TextBlock Grid.Column="2" Text="{x:Bind local:Ui.Percent(Contrast), Mode=OneWay}" Style="{StaticResource DescriptionStyle}" HorizontalAlignment="Right" VerticalAlignment="Center" AutomationProperties.AccessibilityView="Raw" />
+                            </Grid>
+                            <Grid ColumnDefinitions="28,*,36" Visibility="{x:Bind local:Ui.Visible(HasVolume), Mode=OneWay}">
+                                <ToggleButton
+                                    Width="28"
+                                    Height="28"
+                                    Padding="0"
+                                    CornerRadius="8"
+                                    BorderThickness="0"
+                                    Background="{ThemeResource SubtleFillColorTransparentBrush}"
+                                    IsChecked="{x:Bind IsMuted, Mode=TwoWay}"
+                                    AutomationProperties.Name="{x:Bind MuteButtonName, Mode=OneWay}"
+                                    ToolTipService.ToolTip="{x:Bind MuteButtonName, Mode=OneWay}">
+                                    <FontIcon Glyph="{x:Bind local:Ui.MuteGlyph(IsMuted), Mode=OneWay}" FontSize="14" />
+                                </ToggleButton>
+                                <Slider Grid.Column="1" Minimum="0" Maximum="100" StepFrequency="1" Value="{x:Bind Volume, Mode=TwoWay}" AutomationProperties.Name="Speaker volume" />
+                                <TextBlock Grid.Column="2" Text="{x:Bind local:Ui.Percent(Volume), Mode=OneWay}" Style="{StaticResource DescriptionStyle}" HorizontalAlignment="Right" VerticalAlignment="Center" AutomationProperties.AccessibilityView="Raw" />
+                            </Grid>
+                        </StackPanel>
                     </Border>
                 </StackPanel>
             </DataTemplate>
@@ -144,9 +239,9 @@
                 <ColumnDefinition Width="Auto" />
                 <ColumnDefinition x:Name="CaptionSpace" Width="92" />
             </Grid.ColumnDefinitions>
-            <Grid x:Name="TitleArea" Background="Transparent" ColumnDefinitions="Auto,*" ColumnSpacing="12" Padding="16,0,0,0">
-                <Image Source="ms-appx:///Assets/Switchboard.ico" Width="16" Height="16" VerticalAlignment="Center" AutomationProperties.AccessibilityView="Raw" />
-                <TextBlock Grid.Column="1" Text="Switchboard" Style="{StaticResource CaptionTextBlockStyle}" VerticalAlignment="Center" TextWrapping="NoWrap" TextTrimming="CharacterEllipsis" />
+            <Grid x:Name="TitleArea" Background="Transparent" ColumnDefinitions="Auto,*" ColumnSpacing="10" Padding="14,0,0,0">
+                <Image Source="ms-appx:///Assets/Switchboard.ico" Width="20" Height="20" VerticalAlignment="Center" AutomationProperties.AccessibilityView="Raw" />
+                <TextBlock Grid.Column="1" Text="InputFlip" FontFamily="{StaticResource DisplayFont}" FontWeight="SemiBold" FontSize="14" VerticalAlignment="Center" TextWrapping="NoWrap" TextTrimming="CharacterEllipsis" />
             </Grid>
             <!-- Only there when a newer version is ready. -->
             <Button
@@ -155,6 +250,7 @@
                 Height="28"
                 Padding="10,0"
                 Margin="0,0,4,0"
+                CornerRadius="14"
                 VerticalAlignment="Center"
                 Visibility="{x:Bind local:Ui.Visible(ViewModel.HasUpdate), Mode=OneWay}"
                 IsEnabled="{x:Bind local:Ui.Not(ViewModel.IsUpdating), Mode=OneWay}"
@@ -186,6 +282,7 @@
                 Width="40"
                 Height="32"
                 Padding="0"
+                CornerRadius="8"
                 BorderThickness="0"
                 Background="{ThemeResource SubtleFillColorTransparentBrush}"
                 Click="AlwaysOnTop_Click"
@@ -204,15 +301,26 @@
             </Button>
         </Grid>
 
-        <StackPanel x:Name="Body" Grid.Row="1" Padding="12,4,12,12" Spacing="16" XYFocusKeyboardNavigation="Enabled">
+        <StackPanel x:Name="Body" Grid.Row="1" Padding="12,4,12,14" Spacing="18" XYFocusKeyboardNavigation="Enabled" TabFocusNavigation="Once">
+            <!-- Scenes: switch several monitors at once. -->
+            <ItemsRepeater
+                ItemsSource="{x:Bind ViewModel.Scenes}"
+                ItemTemplate="{StaticResource SceneTemplate}"
+                Visibility="{x:Bind local:Ui.Visible(ViewModel.HasScenes), Mode=OneWay}"
+                AutomationProperties.Name="Scenes">
+                <ItemsRepeater.Layout>
+                    <UniformGridLayout MinItemWidth="100" MinItemHeight="36" MinColumnSpacing="8" MinRowSpacing="8" ItemsStretch="Fill" MaximumRowsOrColumns="3" />
+                </ItemsRepeater.Layout>
+            </ItemsRepeater>
+
             <StackPanel Visibility="{x:Bind local:Ui.Visible(ViewModel.IsEmpty), Mode=OneWay}" Spacing="4" Margin="2,8,2,0">
                 <TextBlock Text="No monitors found yet." Style="{StaticResource BodyStrongTextBlockStyle}" />
-                <TextBlock Text="Switchboard is still looking, or Windows didn't report any monitor it can talk to. Try Refresh." Style="{StaticResource DescriptionStyle}" />
+                <TextBlock Text="InputFlip is still looking, or Windows didn't report any monitor it can talk to. Try Refresh." Style="{StaticResource DescriptionStyle}" />
             </StackPanel>
             <ItemsControl ItemsSource="{x:Bind ViewModel.Monitors}" ItemTemplate="{StaticResource MonitorTemplate}" IsTabStop="False">
                 <ItemsControl.ItemsPanel>
                     <ItemsPanelTemplate>
-                        <StackPanel Spacing="16" />
+                        <StackPanel Spacing="18" />
                     </ItemsPanelTemplate>
                 </ItemsControl.ItemsPanel>
             </ItemsControl>
@@ -225,7 +333,7 @@
             ColumnSpacing="8"
             Padding="14,10,12,12"
             BorderThickness="0,1,0,0"
-            BorderBrush="{ThemeResource DividerStrokeColorDefaultBrush}">
+            BorderBrush="{ThemeResource IfStrokeBrush}">
             <TextBlock
                 x:Name="StatusText"
                 Text="{x:Bind ViewModel.Status, Mode=OneWay}"

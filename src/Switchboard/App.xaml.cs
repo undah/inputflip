@@ -14,6 +14,9 @@ public partial class App : Application
         ? "." + Convert.ToHexString(System.Security.Cryptography.SHA256.HashData(System.Text.Encoding.UTF8.GetBytes(AppPaths.DataDirectory.ToLowerInvariant())))[..12]
         : "";
 
+    /// <summary>Where a second start sends its command (--switch, a link) to the copy that is running.</summary>
+    public static string CommandPipeName => "InputFlip.Commands." + Environment.UserName + InstanceSuffix;
+
     private Mutex? _singleInstance;
     private EventWaitHandle? _showEvent;
     private AppController? _controller;
